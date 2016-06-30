@@ -113,8 +113,16 @@ switch Op
                     case 'popupmenu'
                         BpodSystem.GUIData.ParameterGUI.Styles(ParamNum) = 4;
                         BpodSystem.GUIHandles.ParameterGUI.Params(ParamNum) = uicontrol('Style', 'popupmenu', 'String', ThisParamString, 'Value', ThisParam, 'Position', [HPos+220 VPos+InPanelPos+2 200 25], 'FontWeight', 'normal', 'FontSize', 12, 'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center');
+                    case 'togglebutton' % INCOMPLETE
+                        BpodSystem.GUIData.ParameterGUI.Styles(ParamNum) = 5;
+                        BpodSystem.GUIHandles.ParameterGUI.Params(ParamNum) = uicontrol('Style', 'togglebutton', 'String', ThisParamString, 'Value', ThisParam, 'Position', [HPos+220 VPos+InPanelPos+2 200 25], 'FontWeight', 'normal', 'FontSize', 12, 'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center');
+                    case 'pushbutton'
+                        BpodSystem.GUIData.ParameterGUI.Styles(ParamNum) = 6;
+                        BpodSystem.GUIHandles.ParameterGUI.Params(ParamNum) = uicontrol('Style', 'pushbutton', 'String', ThisParamString,...
+                            'Value', ThisParam, 'Position', [HPos+220 VPos+InPanelPos+2 200 25], 'FontWeight', 'normal', 'FontSize', 12,...
+                            'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center','Callback',Meta.OdorSettings.Callback);
                     otherwise
-                        error('Invalid parameter style specified. Valid parameters are: ''edit'', ''text'', ''checkbox'', ''popupmenu''');
+                        error('Invalid parameter style specified. Valid parameters are: ''edit'', ''text'', ''checkbox'', ''popupmenu'', ''togglebutton'', ''pushbutton''');
                 end
                 InPanelPos = InPanelPos + 35;
                 ParamNum = ParamNum + 1;
@@ -124,7 +132,7 @@ switch Op
             if p < nPanels
                 NextPanelParams = Panels.(PanelNames{p+1});
                 NextPanelSize = (length(NextPanelParams)*45) + 5;
-                if VPos + NextPanelSize > GUIHeight
+                if VPos + ThisPanelHeight + 10 + NextPanelSize > GUIHeight
                     Wrap = 1;
                 end
             end
@@ -173,6 +181,13 @@ switch Op
                         set(ThisParamHandle, 'Value', GUIParam);
                     end
                 case 4 % Popupmenu
+                    GUIParam = get(ThisParamHandle, 'Value');
+                    if GUIParam ~= ThisParamLastValue
+                        Params.GUI.(ThisParamName) = GUIParam;
+                    elseif Params.GUI.(ThisParamName) ~= ThisParamLastValue
+                        set(ThisParamHandle, 'Value', GUIParam);
+                    end
+                case 6
                     GUIParam = get(ThisParamHandle, 'Value');
                     if GUIParam ~= ThisParamLastValue
                         Params.GUI.(ThisParamName) = GUIParam;
