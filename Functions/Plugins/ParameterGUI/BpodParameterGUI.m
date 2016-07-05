@@ -68,21 +68,24 @@ switch Op
         Params = Params.GUI;
         PanelNames = PanelNames(end:-1:1);
         GUIHeight = 650;
-        VPos = 10;
-        HPos = 10;
         MaxVPos = 0;
+        MaxHPos = 0;
+        ParamNum = 1;
         BpodSystem.ProtocolFigures.ParameterGUI = figure('Position', [50 50 450 GUIHeight],'name','Parameter GUI','numbertitle','off', 'MenuBar', 'none', 'Resize', 'on');
+        BpodSystem.GUIHandles.ParameterGUI.TabGroup = uitabgroup(BpodSystem.ProtocolFigures.ParameterGUI);
         for t = 1:nTabs
+            VPos = 10;
+            HPos = 10;
             ThisTabPanelNames = Tabs.(TabNames{t});
             nPanels = length(ThisTabPanelNames);
-            uitab('title', TabNames{t});
-            ParamNum = 1;
+            htab = uitab('title', TabNames{t});
+            BpodSystem.GUIHandles.ParameterGUI.Tab{t} = htab;
             for p = 1:nPanels
                 ThisPanelParamNames = Panels.(ThisTabPanelNames{p});
                 ThisPanelParamNames = ThisPanelParamNames(end:-1:1);
                 nParams = length(ThisPanelParamNames);
                 ThisPanelHeight = (45*nParams)+5;
-                uipanel('title', PanelNames{p},'FontSize',12, 'FontWeight', 'Bold', 'BackgroundColor','white','Units','Pixels', 'Position',[HPos VPos 430 ThisPanelHeight]);
+                uipanel(htab,'title', ThisTabPanelNames{p},'FontSize',12, 'FontWeight', 'Bold', 'BackgroundColor','white','Units','Pixels', 'Position',[HPos VPos 430 ThisPanelHeight]);
                 InPanelPos = 10;
                 for i = 1:nParams
                     ThisParamName = ThisPanelParamNames{i};
@@ -112,26 +115,26 @@ switch Op
                         ThisParamStyle = 'edit';
                         ThisParamValue = NaN;
                     end
-                    BpodSystem.GUIHandles.ParameterGUI.Labels(ParamNum) = uicontrol('Style', 'text', 'String', ThisParamName, 'Position', [HPos+5 VPos+InPanelPos 200 25], 'FontWeight', 'normal', 'FontSize', 12, 'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center');
+                    BpodSystem.GUIHandles.ParameterGUI.Labels(ParamNum) = uicontrol(htab,'Style', 'text', 'String', ThisParamName, 'Position', [HPos+5 VPos+InPanelPos 200 25], 'FontWeight', 'normal', 'FontSize', 12, 'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center');
                     switch lower(ThisParamStyle)
                         case 'edit'
                             BpodSystem.GUIData.ParameterGUI.Styles(ParamNum) = 1;
-                            BpodSystem.GUIHandles.ParameterGUI.Params(ParamNum) = uicontrol('Style', 'edit', 'String', num2str(ThisParam), 'Position', [HPos+220 VPos+InPanelPos+2 200 25], 'FontWeight', 'normal', 'FontSize', 12, 'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center');
+                            BpodSystem.GUIHandles.ParameterGUI.Params(ParamNum) = uicontrol(htab,'Style', 'edit', 'String', num2str(ThisParam), 'Position', [HPos+220 VPos+InPanelPos+2 200 25], 'FontWeight', 'normal', 'FontSize', 12, 'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center');
                         case 'text'
                             BpodSystem.GUIData.ParameterGUI.Styles(ParamNum) = 2;
-                            BpodSystem.GUIHandles.ParameterGUI.Params(ParamNum) = uicontrol('Style', 'text', 'String', num2str(ThisParam), 'Position', [HPos+220 VPos+InPanelPos+2 200 25], 'FontWeight', 'normal', 'FontSize', 12, 'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center');
+                            BpodSystem.GUIHandles.ParameterGUI.Params(ParamNum) = uicontrol(htab,'Style', 'text', 'String', num2str(ThisParam), 'Position', [HPos+220 VPos+InPanelPos+2 200 25], 'FontWeight', 'normal', 'FontSize', 12, 'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center');
                         case 'checkbox'
                             BpodSystem.GUIData.ParameterGUI.Styles(ParamNum) = 3;
-                            BpodSystem.GUIHandles.ParameterGUI.Params(ParamNum) = uicontrol('Style', 'checkbox', 'Value', ThisParam, 'String', '   (check to activate)', 'Position', [HPos+220 VPos+InPanelPos+4 200 25], 'FontWeight', 'normal', 'FontSize', 12, 'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center');
+                            BpodSystem.GUIHandles.ParameterGUI.Params(ParamNum) = uicontrol(htab,'Style', 'checkbox', 'Value', ThisParam, 'String', '   (check to activate)', 'Position', [HPos+220 VPos+InPanelPos+4 200 25], 'FontWeight', 'normal', 'FontSize', 12, 'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center');
                         case 'popupmenu'
                             BpodSystem.GUIData.ParameterGUI.Styles(ParamNum) = 4;
-                            BpodSystem.GUIHandles.ParameterGUI.Params(ParamNum) = uicontrol('Style', 'popupmenu', 'String', ThisParamString, 'Value', ThisParam, 'Position', [HPos+220 VPos+InPanelPos+2 200 25], 'FontWeight', 'normal', 'FontSize', 12, 'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center');
+                            BpodSystem.GUIHandles.ParameterGUI.Params(ParamNum) = uicontrol(htab,'Style', 'popupmenu', 'String', ThisParamString, 'Value', ThisParam, 'Position', [HPos+220 VPos+InPanelPos+2 200 25], 'FontWeight', 'normal', 'FontSize', 12, 'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center');
                         case 'togglebutton' % INCOMPLETE
                             BpodSystem.GUIData.ParameterGUI.Styles(ParamNum) = 5;
-                            BpodSystem.GUIHandles.ParameterGUI.Params(ParamNum) = uicontrol('Style', 'togglebutton', 'String', ThisParamString, 'Value', ThisParam, 'Position', [HPos+220 VPos+InPanelPos+2 200 25], 'FontWeight', 'normal', 'FontSize', 12, 'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center');
+                            BpodSystem.GUIHandles.ParameterGUI.Params(ParamNum) = uicontrol(htab,'Style', 'togglebutton', 'String', ThisParamString, 'Value', ThisParam, 'Position', [HPos+220 VPos+InPanelPos+2 200 25], 'FontWeight', 'normal', 'FontSize', 12, 'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center');
                         case 'pushbutton'
                             BpodSystem.GUIData.ParameterGUI.Styles(ParamNum) = 6;
-                            BpodSystem.GUIHandles.ParameterGUI.Params(ParamNum) = uicontrol('Style', 'pushbutton', 'String', ThisParamString,...
+                            BpodSystem.GUIHandles.ParameterGUI.Params(ParamNum) = uicontrol(htab,'Style', 'pushbutton', 'String', ThisParamString,...
                                 'Value', ThisParam, 'Position', [HPos+220 VPos+InPanelPos+2 200 25], 'FontWeight', 'normal', 'FontSize', 12,...
                                 'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center','Callback',Meta.OdorSettings.Callback);
                         otherwise
@@ -143,9 +146,9 @@ switch Op
                 % Check next panel to see if it will fit, otherwise start new column
                 Wrap = 0;
                 if p < nPanels
-                    NextPanelParams = Panels.(PanelNames{p+1});
+                    NextPanelParams = Panels.(ThisTabPanelNames{p+1});
                     NextPanelSize = (length(NextPanelParams)*45) + 5;
-                    if VPos + ThisPanelHeight + 10 + NextPanelSize > GUIHeight
+                    if VPos + ThisPanelHeight + 45 + NextPanelSize > GUIHeight
                         Wrap = 1;
                     end
                 end
@@ -161,9 +164,12 @@ switch Op
                         MaxVPos = VPos;
                     end
                 end
-            end
-        end
-        set(BpodSystem.ProtocolFigures.ParameterGUI, 'Position', [50 50 HPos+450 MaxVPos+10]);
+                if HPos > MaxHPos
+                    MaxHPos = HPos;
+                end
+                set(BpodSystem.ProtocolFigures.ParameterGUI, 'Position', [50 50 MaxHPos+450 MaxVPos+45]);
+            end            
+        end        
     case 'sync'
         ParamNames = BpodSystem.GUIData.ParameterGUI.ParamNames;
         nParams = BpodSystem.GUIData.ParameterGUI.nParams;
