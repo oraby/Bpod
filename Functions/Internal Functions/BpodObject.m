@@ -132,38 +132,34 @@ classdef BpodObject < handle
             end
             obj.BpodUserPath = S.BpodUserPath;
             %%
-            dir_calfiles = dir(fullfile(obj.BpodUserPath,'Calibration Files') ); % FS MOD
-            if length(dir_calfiles) == 0, %then Cal Folder didn't exist.
-                mkdir(fullfile(obj.BpodUserPath,'Calibration Files')); % FS MOD
-                obj.CalibrationTables.LiquidCal = [];
-                obj.CalibrationTables.SoundCal = [];
-            else
-                % Liquid
-                try
-                    LiquidCalibrationFilePath = fullfile(obj.BpodUserPath, 'Calibration Files', 'LiquidCalibration.mat'); % FS MOD
-                    load(LiquidCalibrationFilePath);
-                    obj.CalibrationTables.LiquidCal = LiquidCal;
-                catch
-                  obj.CalibrationTables.LiquidCal = [];  
-                end
-                % Sound
-                try
-                    SoundCalibrationFilePath = fullfile(obj.BpodUserPath, 'Calibration Files', 'SoundCalibration.mat'); % FS MOD
-                    load(SoundCalibrationFilePath);
-                    obj.CalibrationTables.SoundCal = SoundCal;
-                catch
-                  obj.CalibrationTables.SoundCal = [];  
-                end
+            %setting up costum folders
+            if ~isdir(fullfile(obj.BpodUserPath,'Calibration Files')) %then Cal Folder didn't exist.
+                copyfile(fullfile(obj.BpodPath, 'Calibration Files'),fullfile(obj.BpodUserPath,'Calibration Files')); % FS MOD
             end
+            if ~isdir(fullfile(obj.BpodUserPath,'Settings Files'))
+                copyfile(fullfile(obj.BpodPath, 'Settings Files'), fullfile(obj.BpodUserPath, 'Settings Files'));
+            end
+            
+            % Liquid
+            try
+                LiquidCalibrationFilePath = fullfile(obj.BpodUserPath, 'Calibration Files', 'LiquidCalibration.mat'); % FS MOD
+                load(LiquidCalibrationFilePath);
+                obj.CalibrationTables.LiquidCal = LiquidCal;
+            catch
+                obj.CalibrationTables.LiquidCal = [];
+            end
+            % Sound
+            try
+                SoundCalibrationFilePath = fullfile(obj.BpodUserPath, 'Calibration Files', 'SoundCalibration.mat'); % FS MOD
+                load(SoundCalibrationFilePath);
+                obj.CalibrationTables.SoundCal = SoundCal;
+            catch
+                obj.CalibrationTables.SoundCal = [];
+            end
+            
             % Load input channel settings
             obj.InputConfigPath = fullfile(obj.BpodUserPath, 'Settings Files', 'BpodInputConfig.mat'); % FS MOD
-            try
-                load(obj.InputConfigPath);
-            catch
-                mkdir(fullfile(obj.BpodUserPath,'Settings Files')); % FS MOD                
-                copyfile(fullfile(obj.BpodPath, 'Settings Files', 'BpodInputConfig.mat'), fullfile(obj.BpodUserPath, 'Settings Files'));
-                load(obj.InputConfigPath);                
-            end
+            load(obj.InputConfigPath);
             obj.InputsEnabled = BpodInputConfig;
 
             % Determine if PsychToolbox is installed. If so, serial communication
