@@ -91,9 +91,9 @@ set(handles.pushbutton7, 'CData', ImportButtonGFX);
 % Check to see if a folder for this protocol's name exists, and if not, make one
 % along with default files for the default test subject named "Test Session"
 
-DataPath = fullfile(BpodSystem.BpodPath,'Data',DummySubjectString);
+DataPath = fullfile(BpodSystem.BpodUserPath,'Data',DummySubjectString);
 ProtocolName = BpodSystem.CurrentProtocolName;
-ProtocolPath = fullfile(BpodSystem.BpodPath,'Protocols',ProtocolName);
+ProtocolPath = fullfile(BpodSystem.BpodUserPath,'Protocols',ProtocolName);
 SettingsPath = fullfile(DataPath,ProtocolName,'Session Settings');
 DefaultSettingsPath = fullfile(ProtocolPath,'SessionSettings.mat');
 
@@ -113,7 +113,7 @@ end
 % Make a list of the names of all subjects who already have a folder for this
 % protocol.
 
-DataPath = fullfile(BpodSystem.BpodPath,'Data');
+DataPath = fullfile(BpodSystem.BpodUserPath,'Data');
 CandidateSubjects = dir(DataPath);
 SubjectNames = cell(1);
 nSubjects = 1;
@@ -133,7 +133,7 @@ for x = 1:length(CandidateSubjects)
 end
 set(handles.listbox1,'String',SubjectNames);
 
-SettingsPath = fullfile(BpodSystem.BpodPath,'Data',DummySubjectString, ProtocolName,'Session Settings');
+SettingsPath = fullfile(BpodSystem.BpodUserPath,'Data',DummySubjectString, ProtocolName,'Session Settings');
 Candidates = dir(SettingsPath);
 nSettingsFiles = 0;
 SettingsFileNames = cell(1);
@@ -211,7 +211,7 @@ Selected = get(handles.listbox1, 'Value');
     else
         SelectedName = NameList;
     end
-SettingsPath = fullfile(BpodSystem.BpodPath,'Data',SelectedName,ProtocolName,'Session Settings');
+SettingsPath = fullfile(BpodSystem.BpodUserPath,'Data',SelectedName,ProtocolName,'Session Settings');
 Candidates = dir(SettingsPath);
 nSettingsFiles = 0;
 SettingsFileNames = cell(1);
@@ -268,7 +268,7 @@ if ~isempty(NameList)
     if ~isempty(SettingsFileName) && ~isempty(NameList)
         ProtocolName = BpodSystem.CurrentProtocolName;
         FormattedDate = [datestr(now, 3) datestr(now, 7) '_' datestr(now, 10)];
-        DataFolder = fullfile(BpodSystem.BpodPath,'Data',SubjectName,ProtocolName, 'Session Data');
+        DataFolder = fullfile(BpodSystem.BpodUserPath,'Data',SubjectName,ProtocolName, 'Session Data');
         Candidates = dir(DataFolder);
         nSessionsToday = 0;
         for x = 1:length(Candidates)
@@ -278,11 +278,11 @@ if ~isempty(NameList)
                 end
             end
         end
-        DataPath = fullfile(BpodSystem.BpodPath,'Data',SubjectName,ProtocolName,'Session Data',[SubjectName '_' ProtocolName '_' FormattedDate '_Session' num2str(nSessionsToday+1) '.mat']);
-        SettingsPath = fullfile(BpodSystem.BpodPath,'Data',SubjectName,ProtocolName, 'Session Settings',[SettingsFileName '.mat']);
+        DataPath = fullfile(BpodSystem.BpodUserPath,'Data',SubjectName,ProtocolName,'Session Data',[SubjectName '_' ProtocolName '_' FormattedDate '_Session' num2str(nSessionsToday+1) '.mat']);
+        SettingsPath = fullfile(BpodSystem.BpodUserPath,'Data',SubjectName,ProtocolName, 'Session Settings',[SettingsFileName '.mat']);
         BpodSystem.DataPath = DataPath;
         BpodSystem.SettingsPath = SettingsPath;
-        ProtocolPath = fullfile(BpodSystem.BpodPath,'Protocols',ProtocolName,[ProtocolName '.m']);
+        ProtocolPath = fullfile(BpodSystem.BpodUserPath,'Protocols',ProtocolName,[ProtocolName '.m']);
         close(LaunchManager)
         BpodSystem.Live = 1;
         BpodSystem.GUIData.ProtocolName = ProtocolName;
@@ -331,9 +331,9 @@ NewName = get(NewAnimalName, 'String');
 NewName = Spaces2Underscores(NewName);
 % Check to see if subject already exists
 ProtocolName = BpodSystem.CurrentProtocolName;
-Testpath = fullfile(BpodSystem.BpodPath,'Data',NewName);
+Testpath = fullfile(BpodSystem.BpodUserPath,'Data',NewName);
 Testpath2 = fullfile(Testpath,ProtocolName);
-ProtocolPath = fullfile(BpodSystem.BpodPath,'Protocols',ProtocolName);
+ProtocolPath = fullfile(BpodSystem.BpodUserPath,'Protocols',ProtocolName);
 NewAnimal = 0;
 if exist(Testpath) ~= 7
     mkdir(Testpath);
@@ -397,7 +397,7 @@ if Selected > 1
     catch
     end
     if ((OkToDelete == 1) && (~isempty(SelectedName)))
-        DeletePath = fullfile(BpodSystem.BpodPath,'Data',SelectedName);
+        DeletePath = fullfile(BpodSystem.BpodUserPath,'Data',SelectedName);
          rmdir(DeletePath,'s')
         BpodErrorSound;
          msgbox(['       Entry  for ' SelectedName ' deleted!'], 'Modal');
@@ -459,7 +459,7 @@ end
 SubjectName = SubjectNameList{SubjectNameValue};
 % Check to see if subject already exists
 ProtocolName = BpodSystem.CurrentProtocolName;
-Testpath = 			fullfile(BpodSystem.BpodPath,'Data',SubjectName,ProtocolName,'Session Settings',[NewSettingsName '.mat' ]);
+Testpath = 			fullfile(BpodSystem.BpodUserPath,'Data',SubjectName,ProtocolName,'Session Settings',[NewSettingsName '.mat' ]);
 if exist(Testpath) == 0
     SettingsPath = Testpath;
     ProtocolSettings = struct;
@@ -502,13 +502,13 @@ end
 Selected = get(handles.listbox2, 'Value');
 SettingsFileName = NameList{Selected};
 ProtocolName = BpodSystem.CurrentProtocolName;
-SettingsPath = fullfile(BpodSystem.BpodPath,'Data',SubjectName,ProtocolName,'Session Settings',[ SettingsFileName '.mat']);
+SettingsPath = fullfile(BpodSystem.BpodUserPath,'Data',SubjectName,ProtocolName,'Session Settings',[ SettingsFileName '.mat']);
 delete(SettingsPath);
 BpodErrorSound;
 msgbox(['Settings file ' SettingsFileName ' deleted!'], 'Modal');
 set(handles.listbox2, 'Value', 1);
 % Update UI with new settings
-SettingsPath = fullfile(BpodSystem.BpodPath,'Data',SubjectName, ProtocolName,'Session Settings');
+SettingsPath = fullfile(BpodSystem.BpodUserPath,'Data',SubjectName, ProtocolName,'Session Settings');
 Candidates = dir(SettingsPath);
 nSettingsFiles = 0;
 SettingsFileNames = cell(1);
@@ -549,7 +549,7 @@ end
 Selected = get(handles.listbox2, 'Value');
 SettingsFileName = NameList{Selected};
 ProtocolName = BpodSystem.CurrentProtocolName;
-SettingsPath = fullfile(BpodSystem.BpodPath,'Data',SubjectName,ProtocolName,'Session Settings',[ SettingsFileName '.mat']);
+SettingsPath = fullfile(BpodSystem.BpodUserPath,'Data',SubjectName,ProtocolName,'Session Settings',[ SettingsFileName '.mat']);
 BpodSystem.SettingsPath = SettingsPath;
 evalin('base', ['load(''' SettingsPath ''')'])
 clc
