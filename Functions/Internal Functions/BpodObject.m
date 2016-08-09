@@ -121,17 +121,14 @@ classdef BpodObject < handle
 %% FS MOD
             if ispc 
                 import java.lang.*;
-                S.BpodUserPath = fullfile(char(System.getProperty('user.home')), 'BpodUser');
-                if ~isdir(S.BpodUserPath)
-                    mkdir(S.BpodUserPath);
-                    disp('*** Bpod User Directories Not Found, Creating them ***');
+                obj.BpodUserPath = fullfile(char(System.getProperty('user.home')), 'BpodUser');
+            else
+                obj.BpodUserPath = fullfile('~', 'BpodUser');
                 end
-            elseif ~isdir(fullfile('~', 'BpodUser')) % tilde works on UNIX and MAC platforms to specify user home directory
-                mkdir(fullfile('~', 'BpodUser'));
-                disp('*** Bpod User Directories Not Found, Creating them ***');                
+            if ~isdir(obj.BpodUserPath)
+                mkdir(obj.BpodUserPath);
+                warning(['Bpod user directory not found. Directory created at ' obj.BpodUserPath]);
             end
-            obj.BpodUserPath = S.BpodUserPath;
-            %%
             %setting up costum folders
             if ~isdir(fullfile(obj.BpodUserPath,'Calibration Files')) %then Cal Folder didn't exist.
                 copyfile(fullfile(obj.BpodPath, 'Calibration Files'),fullfile(obj.BpodUserPath,'Calibration Files')); % FS MOD
