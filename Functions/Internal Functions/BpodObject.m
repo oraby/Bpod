@@ -32,6 +32,7 @@ classdef BpodObject < handle
         ProtocolSettings
         Data
         BpodPath
+        BpodUserPath % FS MOD
         SettingsPath
         DataPath
         ProtocolPath
@@ -117,31 +118,44 @@ classdef BpodObject < handle
             
             obj.HostOS = system_dependent('getos');
             obj.BpodPath = BpodPath;
-            dir_calfiles = dir( fullfile(obj.BpodPath,'Calibration Files') );
-            if length(dir_calfiles) == 0, %then Cal Folder didn't exist.
-                mkdir(fullfile(obj.BpodPath,'Calibration Files'));
-                obj.CalibrationTables.LiquidCal = [];
-                obj.CalibrationTables.SoundCal = [];
+%% FS MOD
+            if ispc 
+                import java.lang.*;
+                obj.BpodUserPath = fullfile(char(System.getProperty('user.home')), 'BpodUser');
             else
-                % Liquid
-                try
-                    LiquidCalibrationFilePath = fullfile(obj.BpodPath, 'Calibration Files', 'LiquidCalibration.mat');
-                    load(LiquidCalibrationFilePath);
-                    obj.CalibrationTables.LiquidCal = LiquidCal;
-                catch
-                  obj.CalibrationTables.LiquidCal = [];  
+                obj.BpodUserPath = fullfile('~', 'BpodUser');
                 end
-                % Sound
-                try
-                    SoundCalibrationFilePath = fullfile(obj.BpodPath, 'Calibration Files', 'SoundCalibration.mat');
-                    load(SoundCalibrationFilePath);
-                    obj.CalibrationTables.SoundCal = SoundCal;
-                catch
-                  obj.CalibrationTables.SoundCal = [];  
-                end
+            if ~isdir(obj.BpodUserPath)
+                mkdir(obj.BpodUserPath);
+                warning(['Bpod user directory not found. Directory created at ' obj.BpodUserPath]);
             end
+            %setting up costum folders
+            if ~isdir(fullfile(obj.BpodUserPath,'Calibration Files')) %then Cal Folder didn't exist.
+                copyfile(fullfile(obj.BpodPath, 'Calibration Files'),fullfile(obj.BpodUserPath,'Calibration Files')); % FS MOD
+            end
+            if ~isdir(fullfile(obj.BpodUserPath,'Settings Files'))
+                copyfile(fullfile(obj.BpodPath, 'Settings Files'), fullfile(obj.BpodUserPath, 'Settings Files'));
+            end
+            
+            % Liquid
+            try
+                LiquidCalibrationFilePath = fullfile(obj.BpodUserPath, 'Calibration Files', 'LiquidCalibration.mat'); % FS MOD
+                load(LiquidCalibrationFilePath);
+                obj.CalibrationTables.LiquidCal = LiquidCal;
+            catch
+                obj.CalibrationTables.LiquidCal = [];
+            end
+            % Sound
+            try
+                SoundCalibrationFilePath = fullfile(obj.BpodUserPath, 'Calibration Files', 'SoundCalibration.mat'); % FS MOD
+                load(SoundCalibrationFilePath);
+                obj.CalibrationTables.SoundCal = SoundCal;
+            catch
+                obj.CalibrationTables.SoundCal = [];
+            end
+            
             % Load input channel settings
-            obj.InputConfigPath = fullfile(obj.BpodPath, 'Settings Files', 'BpodInputConfig.mat');
+            obj.InputConfigPath = fullfile(obj.BpodUserPath, 'Settings Files', 'BpodInputConfig.mat'); % FS MOD
             load(obj.InputConfigPath);
             obj.InputsEnabled = BpodInputConfig;
 
@@ -155,9 +169,9 @@ classdef BpodObject < handle
                 obj.UsesPsychToolbox = 0;
             end
             %Check for Data folder
-            dir_data = dir(fullfile(obj.BpodPath,'Data'));
+            dir_data = dir(fullfile(obj.BpodUserPath,'Data')); % FS MOD
             if length(dir_data) == 0, %then Data didn't exist.
-                mkdir(fullfile(obj.BpodPath, 'Data'));
+                mkdir(fullfile(obj.BpodUserPath, 'Data'));
             end
         end
         function obj = InitializeHardware(obj, portString)
@@ -425,7 +439,12 @@ classdef BpodObject < handle
             set(obj.GUIHandles.MainFig,'handlevisibility','off');
 
             % Load protocols into selector
-            ProtocolPath = fullfile(obj.BpodPath,'Protocols');
+ %% FS MOD             
+            ProtocolPath = fullfile(obj.BpodUserPath,'Protocols');
+            if ~isdir(ProtocolPath)
+                mkdir(ProtocolPath)
+            end
+%%            
             Candidates = dir(ProtocolPath);
             ProtocolNames = cell(1);
             nCandidates = length(Candidates)-2;

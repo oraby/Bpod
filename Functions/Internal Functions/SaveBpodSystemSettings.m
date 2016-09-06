@@ -1,4 +1,4 @@
 function SaveBpodSystemSettings
 global BpodSystem
 BpodSystemSettings = BpodSystem.SystemSettings;
-save(fullfile(BpodSystem.BpodPath, 'Settings Files', 'BpodSystemSettings.mat'), 'BpodSystemSettings');
+save(fullfile(BpodSystem.BpodUserPath, 'Settings Files', 'BpodSystemSettings.mat'), 'BpodSystemSettings'); % FS MOD
