@@ -567,7 +567,7 @@ function pushbutton7_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 global BpodSystem;
-SearchStartPath = fullfile(BpodSystem.BpodPath, 'Data');
+SearchStartPath = fullfile(BpodSystem.BpodUserPath, 'Data');
 [Filename Pathname Junk] = uigetfile('*.mat', 'Select settings to import', SearchStartPath);
 SettingsName = Filename(1:(length(Filename)-4));
 TargetSettingsPath = [Pathname Filename];
@@ -582,7 +582,7 @@ end
 Selected = get(handles.listbox1, 'Value');
 SubjectName = NameList{Selected};
 ProtocolName = BpodSystem.CurrentProtocolName;
-DestinationSettingsPath = fullfile(BpodSystem.BpodPath,'Data',SubjectName,ProtocolName,'Session Settings',[ SettingsName '.mat']);
+DestinationSettingsPath = fullfile(BpodSystem.BpodUserPath,'Data',SubjectName,ProtocolName,'Session Settings',[ SettingsName '.mat']);
 
 if (exist(DestinationSettingsPath) == 2)
     msgbox(['"' SettingsName '"' ' already exists in the target folder. Import aborted.'])
@@ -593,7 +593,7 @@ end
 copyfile(TargetSettingsPath, DestinationSettingsPath);
 
 % Update UI with new settings
-SettingsPath = fullfile(BpodSystem.BpodPath,'Data',SubjectName, ProtocolName,'Session Settings');
+SettingsPath = fullfile(BpodSystem.BpodUserPath,'Data',SubjectName, ProtocolName,'Session Settings');
 Candidates = dir(SettingsPath);
 nSettingsFiles = 0;
 SettingsFileNames = cell(1);

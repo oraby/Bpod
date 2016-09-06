@@ -61,7 +61,7 @@ switch op
         catch
         end
         FormattedDate = [datestr(now, 3) datestr(now, 7) '_' datestr(now, 10)];
-        DataFolder = fullfile(BpodSystem.BpodPath,'Data',currentAnimalName,BpodSystem.CurrentProtocolName, 'Session Data');
+        DataFolder = fullfile(BpodSystem.BpodUserPath,'Data',currentAnimalName,BpodSystem.CurrentProtocolName, 'Session Data');
         Candidates = dir(DataFolder);
         nSessionsToday = 0;
         for x = 1:length(Candidates)
@@ -71,7 +71,7 @@ switch op
                 end
             end
         end
-        DataPath = fullfile(BpodSystem.BpodPath,'Data',currentAnimalName,BpodSystem.CurrentProtocolName,'Session Data',[BpodSystem.GUIData.SubjectName '_' BpodSystem.CurrentProtocolName '_' FormattedDate '_Session' num2str(nSessionsToday+1) '.mat']);
+        DataPath = fullfile(BpodSystem.BpodUserPath,'Data',currentAnimalName,BpodSystem.CurrentProtocolName,'Session Data',[BpodSystem.GUIData.SubjectName '_' BpodSystem.CurrentProtocolName '_' FormattedDate '_Session' num2str(nSessionsToday+1) '.mat']);
         BpodSystem.DataPath = DataPath;
         BpodSystem.Data = struct;
         BpodSystem.Data.TrialTypes = [];
