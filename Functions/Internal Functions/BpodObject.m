@@ -119,8 +119,10 @@ classdef BpodObject < handle
             obj.HostOS = system_dependent('getos');
             obj.BpodPath = BpodPath;
             %% FS MOD
-            if exist(fullfile(obj.BpodPath,'BpodUserPath.mat'),'file')==2
-                load(fullfile(obj.BpodPath,'BpodUserPath.mat'));
+            if exist(fullfile(obj.BpodPath,'BpodUserPath.txt'),'file') == 2
+                UserFile = fopen(fullfile(obj.BpodPath,'BpodUserPath.txt'),'r');
+                BpodUserPath = fscanf(UserFile,'%s');
+                fclose(UserFile);
             else
                 if ispc
                     import java.lang.*;
@@ -128,7 +130,9 @@ classdef BpodObject < handle
                 else
                     BpodUserPath = fullfile('~', 'BpodUser');
                 end
-                save(fullfile(obj.BpodPath,'BpodUserPath.mat'),'BpodUserPath')
+                UserFile = fopen(fullfile(obj.BpodPath,'BpodUserPath.txt'),'w');
+                fprintf(UserFile,'%s',BpodUserPath);
+                fclose(UserFile);
             end
             obj.BpodUserPath = BpodUserPath;
             if ~isdir(obj.BpodUserPath)
