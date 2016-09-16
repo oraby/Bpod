@@ -71,6 +71,9 @@ switch Op
         ParamNum = 1;
         BpodSystem.ProtocolFigures.ParameterGUI = figure('Position', [50 50 450 GUIHeight],'name','Parameter GUI','numbertitle','off', 'MenuBar', 'none', 'Resize', 'on');
         BpodSystem.GUIHandles.ParameterGUI.Tabs.TabGroup = uitabgroup(BpodSystem.ProtocolFigures.ParameterGUI);
+        Menu = uimenu(BpodSystem.ProtocolFigures.ParameterGUI,'Label','File');
+        MenuSave = uimenu(Menu,'Label','Save','Callback',{@MenuSave_Callback});
+        MenuSaveAs = uimenu(Menu,'Label','Save as...','Callback',{@MenuSaveAs_Callback});
         for t = 1:nTabs
             VPos = 10;
             HPos = 10;
@@ -254,3 +257,19 @@ switch Op
     error('ParameterGUI must be called with a valid op code: ''init'' or ''sync''');
 end
 varargout{1} = Params;
+
+function MenuSave_Callback(hObject, eventdata, handles)
+global BpodSystem
+global TaskParameters
+TaskParameters = BpodParameterGUI('sync', TaskParameters);
+ProtocolSettings = TaskParameters;
+save(BpodSystem.SettingsPath,'ProtocolSettings')
+
+function MenuSaveAs_Callback(hObject, eventdata, handles)
+global BpodSystem
+global TaskParameters
+TaskParameters = BpodParameterGUI('sync', TaskParameters);
+ProtocolSettings = TaskParameters;
+[file,path] = uiputfile('*.mat','Select a Bpod ProtocolSettings file.',BpodSystem.SettingsPath);
+save(fullfile(path,file),'ProtocolSettings')
+
