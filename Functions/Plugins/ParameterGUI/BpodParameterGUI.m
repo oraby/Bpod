@@ -71,9 +71,15 @@ switch Op
         ParamNum = 1;
         BpodSystem.ProtocolFigures.ParameterGUI = figure('Position', [50 50 450 GUIHeight],'name','Parameter GUI','numbertitle','off', 'MenuBar', 'none', 'Resize', 'on');
         BpodSystem.GUIHandles.ParameterGUI.Tabs.TabGroup = uitabgroup(BpodSystem.ProtocolFigures.ParameterGUI);
-        Menu = uimenu(BpodSystem.ProtocolFigures.ParameterGUI,'Label','File');
-        MenuSave = uimenu(Menu,'Label','Save','Callback',{@MenuSave_Callback});
-        MenuSaveAs = uimenu(Menu,'Label','Save as...','Callback',{@MenuSaveAs_Callback});
+        SettingsMenu = uimenu(BpodSystem.ProtocolFigures.ParameterGUI,'Label','Settings:');
+        [~, SettingsFile] = fileparts(BpodSystem.SettingsPath);
+        SettingsNameMenu = uimenu(BpodSystem.ProtocolFigures.ParameterGUI,'Label',strcat(SettingsFile,'.'));
+        uimenu(BpodSystem.ProtocolFigures.ParameterGUI,'Label',['Protocol: ', BpodSystem.CurrentProtocolName,'.']);
+        [subpath1, ~] = fileparts(BpodSystem.DataPath); [subpath2, ~] = fileparts(subpath1); [subpath3, ~] = fileparts(subpath2);
+        [~,  subject] = fileparts(subpath3);
+        uimenu(BpodSystem.ProtocolFigures.ParameterGUI,'Label',['Subject: ', subject,'.']);
+        SettingsMenuSave = uimenu(SettingsMenu,'Label','Save','Callback',{@SettingsMenuSave_Callback});
+        SettingsMenuSaveAs = uimenu(SettingsMenu,'Label','Save as...','Callback',{@SettingsMenuSaveAs_Callback,SettingsNameMenu});
         for t = 1:nTabs
             VPos = 10;
             HPos = 10;
@@ -229,14 +235,14 @@ switch Op
                     elseif Params.GUI.(ThisParamName) ~= ThisParamLastValue
                         set(ThisParamHandle, 'Value', GUIParam);
                     end
-                case 6
+                case 6 %Pushbutton
                     GUIParam = get(ThisParamHandle, 'Value');
                     if GUIParam ~= ThisParamLastValue
                         Params.GUI.(ThisParamName) = GUIParam;
                     elseif Params.GUI.(ThisParamName) ~= ThisParamLastValue
                         set(ThisParamHandle, 'Value', GUIParam);
                     end
-                case 7
+                case 7 %Table
                     GUIParam = ThisParamHandle.Data;
                     columnNames = fieldnames(Params.GUI.(ThisParamName));
                     argData = [];
@@ -253,25 +259,54 @@ switch Op
             end
             BpodSystem.GUIData.ParameterGUI.LastParamValues{p} = GUIParam;
         end
+    case 'get'
+        ParamNames = BpodSystem.GUIData.ParameterGUI.ParamNames;
+        nParams = BpodSystem.GUIData.ParameterGUI.nParams;
+        for p = 1:nParams
+            ThisParamName = ParamNames{p};
+            ThisParamStyle = BpodSystem.GUIData.ParameterGUI.Styles(p);
+            ThisParamHandle = BpodSystem.GUIHandles.ParameterGUI.Params{p};
+            switch ThisParamStyle
+                case 1 % Edit
+                    GUIParam = str2double(get(ThisParamHandle, 'String'));
+                    Params.GUI.(ThisParamName) = GUIParam;
+                case 2 % Text
+                    GUIParam = get(ThisParamHandle, 'String');
+                    Params.GUI.(ThisParamName) = GUIParam;
+                case 3 % Checkbox
+                    GUIParam = get(ThisParamHandle, 'Value');
+                    Params.GUI.(ThisParamName) = GUIParam;
+                case 4 % Popupmenu
+                    GUIParam = get(ThisParamHandle, 'Value');
+                    Params.GUI.(ThisParamName) = GUIParam;
+                case 6 % Pushbutton
+                    GUIParam = get(ThisParamHandle, 'Value');
+                    Params.GUI.(ThisParamName) = GUIParam;
+                case 7 % Table
+                    GUIParam = ThisParamHandle.Data;
+                    Params.GUI.(ThisParamName) = GUIParam;
+            end
+        end
     otherwise
     error('ParameterGUI must be called with a valid op code: ''init'' or ''sync''');
 end
 varargout{1} = Params;
 
-function MenuSave_Callback(hObject, eventdata, handles)
+function SettingsMenuSave_Callback(~, ~, ~)
 global BpodSystem
 global TaskParameters
-TaskParameters = BpodParameterGUI('sync', TaskParameters);
-ProtocolSettings = TaskParameters;
+ProtocolSettings = BpodParameterGUI('sync',TaskParameters);
 save(BpodSystem.SettingsPath,'ProtocolSettings')
 
-function MenuSaveAs_Callback(hObject, eventdata, handles)
+function SettingsMenuSaveAs_Callback(~, ~, SettingsMenuHandle)
 global BpodSystem
 global TaskParameters
-TaskParameters = BpodParameterGUI('sync', TaskParameters);
-ProtocolSettings = TaskParameters;
+ProtocolSettings = BpodParameterGUI('get',TaskParameters);
 [file,path] = uiputfile('*.mat','Select a Bpod ProtocolSettings file.',BpodSystem.SettingsPath);
 if file>0
     save(fullfile(path,file),'ProtocolSettings')
+    BpodSystem.SettingsPath = fullfile(path,file);
+    [~,SettingsName] = fileparts(file);
+    set(SettingsMenuHandle,'Label',strcat(SettingsName,'.'));
 end
 
