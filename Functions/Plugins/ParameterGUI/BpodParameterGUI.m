@@ -271,5 +271,7 @@ global TaskParameters
 TaskParameters = BpodParameterGUI('sync', TaskParameters);
 ProtocolSettings = TaskParameters;
 [file,path] = uiputfile('*.mat','Select a Bpod ProtocolSettings file.',BpodSystem.SettingsPath);
-save(fullfile(path,file),'ProtocolSettings')
+if file>0
+    save(fullfile(path,file),'ProtocolSettings')
+end
 
