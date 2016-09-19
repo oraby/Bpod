@@ -71,15 +71,14 @@ switch Op
         ParamNum = 1;
         BpodSystem.ProtocolFigures.ParameterGUI = figure('Position', [50 50 450 GUIHeight],'name','Parameter GUI','numbertitle','off', 'MenuBar', 'none', 'Resize', 'on');
         BpodSystem.GUIHandles.ParameterGUI.Tabs.TabGroup = uitabgroup(BpodSystem.ProtocolFigures.ParameterGUI);
-        SettingsMenu = uimenu(BpodSystem.ProtocolFigures.ParameterGUI,'Label','Settings:');
         [~, SettingsFile] = fileparts(BpodSystem.SettingsPath);
-        SettingsNameMenu = uimenu(BpodSystem.ProtocolFigures.ParameterGUI,'Label',strcat(SettingsFile,'.'));
+        SettingsMenu = uimenu(BpodSystem.ProtocolFigures.ParameterGUI,'Label',['Settings: ',SettingsFile,'.']);
         uimenu(BpodSystem.ProtocolFigures.ParameterGUI,'Label',['Protocol: ', BpodSystem.CurrentProtocolName,'.']);
         [subpath1, ~] = fileparts(BpodSystem.DataPath); [subpath2, ~] = fileparts(subpath1); [subpath3, ~] = fileparts(subpath2);
         [~,  subject] = fileparts(subpath3);
         uimenu(BpodSystem.ProtocolFigures.ParameterGUI,'Label',['Subject: ', subject,'.']);
-        SettingsMenuSave = uimenu(SettingsMenu,'Label','Save','Callback',{@SettingsMenuSave_Callback});
-        SettingsMenuSaveAs = uimenu(SettingsMenu,'Label','Save as...','Callback',{@SettingsMenuSaveAs_Callback,SettingsNameMenu});
+        uimenu(SettingsMenu,'Label','Save','Callback',{@SettingsMenuSave_Callback});
+        uimenu(SettingsMenu,'Label','Save as...','Callback',{@SettingsMenuSaveAs_Callback,SettingsMenu});
         for t = 1:nTabs
             VPos = 10;
             HPos = 10;
@@ -307,6 +306,6 @@ if file>0
     save(fullfile(path,file),'ProtocolSettings')
     BpodSystem.SettingsPath = fullfile(path,file);
     [~,SettingsName] = fileparts(file);
-    set(SettingsMenuHandle,'Label',strcat(SettingsName,'.'));
+    set(SettingsMenuHandle,'Label',['Settings: ',SettingsName,'.']);
 end
 
