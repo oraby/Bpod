@@ -294,7 +294,7 @@ varargout{1} = Params;
 function SettingsMenuSave_Callback(~, ~, ~)
 global BpodSystem
 global TaskParameters
-ProtocolSettings = BpodParameterGUI('sync',TaskParameters);
+ProtocolSettings = BpodParameterGUI('get',TaskParameters);
 save(BpodSystem.SettingsPath,'ProtocolSettings')
 
 function SettingsMenuSaveAs_Callback(~, ~, SettingsMenuHandle)
