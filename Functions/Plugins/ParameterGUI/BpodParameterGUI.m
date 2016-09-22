@@ -271,6 +271,7 @@ switch Op
                     Params.GUI.(ThisParamName) = GUIParam;
                 case 2 % Text
                     GUIParam = get(ThisParamHandle, 'String');
+                    GUIParam = str2double(GUIParam);  
                     Params.GUI.(ThisParamName) = GUIParam;
                 case 3 % Checkbox
                     GUIParam = get(ThisParamHandle, 'Value');
@@ -283,7 +284,10 @@ switch Op
                     Params.GUI.(ThisParamName) = GUIParam;
                 case 7 % Table
                     GUIParam = ThisParamHandle.Data;
-                    Params.GUI.(ThisParamName) = GUIParam;
+                    columnNames = fieldnames(Params.GUI.(ThisParamName));
+                    for iColumn = 1:numel(columnNames)
+                         Params.GUI.(ThisParamName).(columnNames{iColumn}) = GUIParam(:,iColumn);
+                    end
             end
         end
     otherwise
