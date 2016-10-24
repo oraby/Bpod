@@ -118,13 +118,23 @@ classdef BpodObject < handle
             
             obj.HostOS = system_dependent('getos');
             obj.BpodPath = BpodPath;
-%% FS MOD
-            if ispc 
-                import java.lang.*;
-                obj.BpodUserPath = fullfile(char(System.getProperty('user.home')), 'BpodUser');
+            %% FS MOD
+            if exist(fullfile(obj.BpodPath,'BpodUserPath.txt'),'file') == 2
+                UserFile = fopen(fullfile(obj.BpodPath,'BpodUserPath.txt'),'r');
+                BpodUserPath = fscanf(UserFile,'%s');
+                fclose(UserFile);
             else
-                obj.BpodUserPath = fullfile('~', 'BpodUser');
+                if ispc
+                    import java.lang.*;
+                    BpodUserPath = fullfile(char(System.getProperty('user.home')), 'BpodUser');
+                else
+                    BpodUserPath = fullfile('~', 'BpodUser');
                 end
+                UserFile = fopen(fullfile(obj.BpodPath,'BpodUserPath.txt'),'w');
+                fprintf(UserFile,'%s',BpodUserPath);
+                fclose(UserFile);
+            end
+            obj.BpodUserPath = BpodUserPath;
             if ~isdir(obj.BpodUserPath)
                 mkdir(obj.BpodUserPath);
                 warning(['Bpod user directory not found. Directory created at ' obj.BpodUserPath]);
