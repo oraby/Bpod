@@ -19,4 +19,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %}
 function SaveBpodProtocolSettings
 global BpodSystem
-save(BpodSystem.SettingsPath, 'BpodSystem.ProtocolSettings');
+
+% now compatible with recent matlab versions in which you can't save a
+% structure field directly (FS MOD)
+ProtocolSettings = BpodSystem.ProtocolSettings;
+save(BpodSystem.SettingsPath, 'ProtocolSettings');
