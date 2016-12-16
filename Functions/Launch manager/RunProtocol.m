@@ -41,6 +41,12 @@ switch Opstring
             end
         end
     case 'Stop'
+        %execute user kill script
+        try
+            [~,Protocol]=fileparts(fileparts(fileparts(BpodSystem.DataPath)));
+            run(fullfile(BpodSystem.BpodUserPath,'Protocols',Protocol,'UserKillScript.m'));
+        catch
+        end
         if ~isempty(BpodSystem.CurrentProtocolName)
             disp(' ')
             disp([BpodSystem.CurrentProtocolName ' ended.'])
