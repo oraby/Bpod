@@ -64,6 +64,9 @@ switch Action
         end
         axes(AxesHandle);
         MaxTrialType = max(TrialTypeList);
+        if isnan(MaxTrialType)
+            MaxTrialType = 1; % for NaN filled TrialTypes, might occur if you determine trial type on the fly
+        end
         %plot in specified axes
         Xdata = 1:nTrialsToShow; Ydata = -TrialTypeList(Xdata);
         BpodSystem.GUIHandles.FutureTrialLine = line([Xdata,Xdata],[Ydata,Ydata],'LineStyle','none','Marker','o','MarkerEdge','b','MarkerFace','b', 'MarkerSize',6);
@@ -84,6 +87,9 @@ switch Action
         TrialTypeList = varargin{2};
         OutcomeRecord = varargin{3};
         MaxTrialType = max(TrialTypeList);
+        if isnan(MaxTrialType)
+            MaxTrialType = 1; % for NaN filled TrialTypes, might occur if you determine trial type on the fly
+        end
         set(AxesHandle,'YLim',[-MaxTrialType-.5, -.5], 'YTick', -MaxTrialType:1:-1,'YTickLabel', strsplit(num2str(MaxTrialType:-1:-1)));
         if CurrentTrial<1
             CurrentTrial = 1;
