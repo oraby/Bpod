@@ -40,7 +40,7 @@ switch lower(op)
         
         % Setup calibration
         BpodSystem.PluginObjects.LiquidCal.PendingMeasurements = cell(1,8);
-        CalibrationFilePath = fullfile(BpodSystem.BpodPath, 'Calibration Files', 'LiquidCalibration.mat');
+        CalibrationFilePath = fullfile(BpodSystem.BpodUserPath, 'Calibration Files', 'LiquidCalibration.mat');
         if exist(CalibrationFilePath) == 2
             load(CalibrationFilePath);
         else
@@ -329,11 +329,11 @@ if isPendingMeasurement == 0
         BpodSystem.PluginObjects.LiquidCal.CalData(CurrentValve).Coeffs = [];
     end
     % Save file
-    TestSavePath = fullfile(BpodSystem.BpodPath, 'Calibration Files');
+    TestSavePath = fullfile(BpodSystem.BpodUserPath, 'Calibration Files');
     if exist(TestSavePath) ~= 7
         mkdir(TestSavePath);
     end
-    SavePath = fullfile(BpodSystem.BpodPath, 'Calibration Files', 'LiquidCalibration.mat');
+    SavePath = fullfile(BpodSystem.BpodUserPath, 'Calibration Files', 'LiquidCalibration.mat');
     LiquidCal = BpodSystem.PluginObjects.LiquidCal.CalData;
     LiquidCal(1).LastDateModified = now;
     save(SavePath, 'LiquidCal');
@@ -696,11 +696,11 @@ if AllValid == 1
     % LiquidCalibrationManager to reflect the new pending measurements vector
     
     % Save file
-    TestSavePath = fullfile(BpodSystem.BpodPath, 'Calibration Files');
+    TestSavePath = fullfile(BpodSystem.BpodUserPath, 'Calibration Files');
     if exist(TestSavePath) ~= 7
         mkdir(TestSavePath);
     end
-    SavePath = fullfile(BpodSystem.BpodPath, 'Calibration Files', 'LiquidCalibration.mat');
+    SavePath = fullfile(BpodSystem.BpodUserPath, 'Calibration Files', 'LiquidCalibration.mat');
     LiquidCal = BpodSystem.PluginObjects.LiquidCal.CalData;
     LiquidCal(1).LastDateModified = now;
     save(SavePath, 'LiquidCal');

@@ -51,10 +51,13 @@ function OlfactometerConfig_OpeningFcn(hObject, eventdata, handles, varargin)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to OlfactometerConfig (see VARARGIN)
+global BpodSystem
 ha = axes('units','normalized', 'position',[0 0 1 1]);
 uistack(ha,'bottom');
 BG = imread('OlfControlPanel.bmp');
 image(BG); axis off;
+% FS NOTE: This function not updated to utilize BpodUserPath
+% 
 loadBpodPath;
 if exist(fullfile(BpodPath,'Bpod System Files','OlfConfig.mat'))
     load OlfConfig

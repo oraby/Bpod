@@ -55,16 +55,14 @@ switch Op
             PanelNames = {'Parameters'};
         end
         if isfield(Params, 'GUITabs')
-            Tabs = Params.GUITabs;
-            TabNames = fieldnames(Tabs);
-            nTabs = length(TabNames);
+            Tabs = Params.GUITabs;            
         else
             Tabs = struct;
-            Tabs.Panels = PanelNames;
-            TabNames = {'Parameters'};
-            nTabs = 1;
+            Tabs.Parameters = PanelNames;
         end
-        
+        TabNames = fieldnames(Tabs);
+        nTabs = length(TabNames);
+            
         Params = Params.GUI;
         PanelNames = PanelNames(end:-1:1);
         GUIHeight = 650;
