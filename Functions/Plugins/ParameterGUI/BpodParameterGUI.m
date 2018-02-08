@@ -157,7 +157,7 @@ switch Op
                             end
 %                             tableData(:,2) = tableData(:,2)/sum(tableData(:,2));
                             htable = uitable(htab,'data',tableData,'columnname',columnLabel,...
-                                'ColumnEditable',[true true], 'FontSize', 12);
+                                'ColumnEditable',true(1,numel(columnLabel)), 'FontSize', 12);
                             htable.Position([3 4]) = htable.Extent([3 4]);
                             htable.Position([1 2]) = [HPos+220 VPos+InPanelPos+2];
                             BpodSystem.GUIHandles.ParameterGUI.Params{ParamNum} = htable;
