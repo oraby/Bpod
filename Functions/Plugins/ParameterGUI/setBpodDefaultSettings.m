@@ -28,6 +28,9 @@ for counter = 1:size(defaults, 1)
 
     fieldSet = [];
     expression = ['fieldSet=isfield(s.' firstFields ',' '''' lastField ''');'];
+    % if the whole thing doesn't evaulate then you need to use the default value regardless, e.g.
+    % if GUIMeta doesn't exist at all you need to create it as well as
+    % associated subfields
     try
         eval(expression);
     catch
