@@ -167,6 +167,9 @@ switch Op
                             ThisPanelHeight = ThisPanelHeight + (htable.Position(4)-25);
                             BpodSystem.GUIHandles.ParameterGUI.Panels.(ThisTabPanelNames{p}).Position(4) = ThisPanelHeight;
                             BpodSystem.GUIData.ParameterGUI.LastParamValues{ParamNum} = htable.Data;
+                        case 'popupmenutext' % popupmenu, but returns string of menu item rather than its numeric index FS MOD 4/2018
+                            BpodSystem.GUIData.ParameterGUI.Styles(ParamNum) = 9;
+                            BpodSystem.GUIHandles.ParameterGUI.Params{ParamNum} = uicontrol(htab,'Style', 'popupmenu', 'String', ThisParamString, 'Value', find(strcmp(ThisParam, ThisParamString)), 'Position', [HPos+220 VPos+InPanelPos+2 200 25], 'FontWeight', 'normal', 'FontSize', 12, 'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center');                            
                         otherwise
                             error('Invalid parameter style specified. Valid parameters are: ''edit'', ''text'', ''checkbox'', ''popupmenu'', ''togglebutton'', ''pushbutton''');
                     end
@@ -244,6 +247,15 @@ switch Op
                     elseif Params.GUI.(ThisParamName) ~= ThisParamLastValue
                         set(ThisParamHandle, 'Value', GUIParam);
                     end
+                case 9 %  popupmenu text, returns string FS MOD 4/2018
+                    GUIParam = get(ThisParamHandle, 'Value');
+                    GUIParamList = get(ThisParamHandle, 'String');
+                    GUIParamString = GUIParamList{GUIParam};
+                    if ~strcmpi(GUIParamString, ThisParamLastValue)
+                        Params.GUI.(ThisParamName) = GUIParamString;
+                    elseif ~strcmpi(Params.GUI.(ThisParamName), ThisParamLastValue)
+                        set(ThisParamHandle, 'Value', find(strcmp(Params.GUI.(ThisParamName), ThisParamList)));
+                    end                    
                 case 6 %Pushbutton
                     GUIParam = get(ThisParamHandle, 'Value');
                     if GUIParam ~= ThisParamLastValue
@@ -301,6 +313,10 @@ switch Op
                     for iColumn = 1:numel(columnNames)
                          Params.GUI.(ThisParamName).(columnNames{iColumn}) = GUIParam(:,iColumn);
                     end
+                case 9 % popupmenu text, returns string FS MOD 4/2018
+                    GUIParam = get(ThisParamHandle, 'Value');
+                    GUIParamList = get(ThisParamHandle, 'String');
+                    Params.GUI.(ThisParamName) = GUIParamList{GUIParam};
             end
         end
     otherwise
