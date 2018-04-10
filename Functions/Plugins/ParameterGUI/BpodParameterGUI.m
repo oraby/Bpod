@@ -251,10 +251,10 @@ switch Op
                     GUIParam = get(ThisParamHandle, 'Value');
                     GUIParamList = get(ThisParamHandle, 'String');
                     GUIParamString = GUIParamList{GUIParam};
-                    if ~strcmpi(GUIParamString, ThisParamLastValue)
+                    if GUIParam ~= ThisParamLastValue
                         Params.GUI.(ThisParamName) = GUIParamString;
-                    elseif ~strcmpi(Params.GUI.(ThisParamName), ThisParamLastValue)
-                        set(ThisParamHandle, 'Value', find(strcmp(Params.GUI.(ThisParamName), ThisParamList)));
+                    elseif find(strcmp(Params.GUI.(ThisParamName), GUIParamList)) ~= ThisParamLastValue
+                        set(ThisParamHandle, 'Value', find(strcmp(Params.GUI.(ThisParamName), GUIParamList)));
                     end                    
                 case 6 %Pushbutton
                     GUIParam = get(ThisParamHandle, 'Value');
