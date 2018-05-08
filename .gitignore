@@ -3,3 +3,5 @@ Data/**
 Protocols/**
 .gitmodules
 *BpodUserPath.txt
+Settings Files/BpodSystemSettings*
+Settings Files/BpodInputConfig*
