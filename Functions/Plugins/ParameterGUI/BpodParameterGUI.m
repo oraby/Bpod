@@ -126,6 +126,9 @@ switch Op
                         case 'edit'
                             BpodSystem.GUIData.ParameterGUI.Styles(ParamNum) = 1;
                             BpodSystem.GUIHandles.ParameterGUI.Params{ParamNum} = uicontrol(htab,'Style', 'edit', 'String', num2str(ThisParam), 'Position', [HPos+220 VPos+InPanelPos+2 200 25], 'FontWeight', 'normal', 'FontSize', 12, 'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center');
+                        case 'edittext'
+                            BpodSystem.GUIData.ParameterGUI.Styles(ParamNum) = 8;
+                            BpodSystem.GUIHandles.ParameterGUI.Params{ParamNum} = uicontrol(htab,'Style', 'edit', 'String', ThisParam, 'Position', [HPos+220 VPos+InPanelPos+2 200 25], 'FontWeight', 'normal', 'FontSize', 12, 'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center');
                         case 'text'
                             BpodSystem.GUIData.ParameterGUI.Styles(ParamNum) = 2;
                             BpodSystem.GUIHandles.ParameterGUI.Params{ParamNum} = uicontrol(htab,'Style', 'text', 'String', num2str(ThisParam), 'Position', [HPos+220 VPos+InPanelPos+2 200 25], 'FontWeight', 'normal', 'FontSize', 12, 'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center');
@@ -157,7 +160,7 @@ switch Op
                             end
 %                             tableData(:,2) = tableData(:,2)/sum(tableData(:,2));
                             htable = uitable(htab,'data',tableData,'columnname',columnLabel,...
-                                'ColumnEditable',[true true], 'FontSize', 12);
+                                'ColumnEditable',true(1,numel(columnLabel)), 'FontSize', 12);
                             htable.Position([3 4]) = htable.Extent([3 4]);
                             htable.Position([1 2]) = [HPos+220 VPos+InPanelPos+2];
                             BpodSystem.GUIHandles.ParameterGUI.Params{ParamNum} = htable;
@@ -213,6 +216,13 @@ switch Op
                     elseif Params.GUI.(ThisParamName) ~= ThisParamLastValue
                         set(ThisParamHandle, 'String', num2str(GUIParam));
                     end
+                case 8 % Edit Text
+                    GUIParam = get(ThisParamHandle, 'String');
+                    if ~strcmpi(GUIParam, ThisParamLastValue)
+                        Params.GUI.(ThisParamName) = GUIParam;
+                    elseif ~strcmpi(Params.GUI.(ThisParamName), ThisParamLastValue)
+                        set(ThisParamHandle, 'String', GUIParam);
+                    end                                     
                 case 2 % Text
                     GUIParam = Params.GUI.(ThisParamName);
                     Text = GUIParam;
@@ -269,6 +279,9 @@ switch Op
                 case 1 % Edit
                     GUIParam = str2double(get(ThisParamHandle, 'String'));
                     Params.GUI.(ThisParamName) = GUIParam;
+                case 8 % Edit Text
+                    GUIParam = get(ThisParamHandle, 'String');
+                    Params.GUI.(ThisParamName) = GUIParam;                    
                 case 2 % Text
                     GUIParam = get(ThisParamHandle, 'String');
                     GUIParam = str2double(GUIParam);  
