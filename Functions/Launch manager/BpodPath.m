@@ -7,6 +7,7 @@ function BpodPath(Name)
 %%
 %% Designed by Quentin 2017 for killerscript version of Bpod
 
+defaultPath='C:\Users\Kepecs\Documents\Bpod';
 %% User specific
 try
 switch Name
@@ -16,18 +17,20 @@ switch Name
         Path='C:\Users\Kepecs\Documents\Data\Ada\Bpod';
     case 'Tzvia'
         Path='C:\Users\Kepecs\Documents\Data\Tzvia\Bpod';
+    case 'Sensors'
+        Path='C:\Users\Kepecs\Documents\Data\Sensors\Bpod';
     case 'ini'
-        Path='C:\Users\Kepecs\Documents\MATLAB\Bpod';
+        Path=defaultPath;
 end
 
 %% Overwritting the txt file
-cd('C:\Users\Kepecs\Documents\Bpod');
+cd(defaultPath);
 BpodUserPathTXT=fopen('BpodUserPath.txt','w');
 fprintf(BpodUserPathTXT,'%c',Path);
 fclose(BpodUserPathTXT);
 disp(Path)
 
 catch
-    disp('Cannot find the bpod path -- Recorded Users are - Ada - Quentin - Tzvia -- Use ini to use the default bpod folder');
+    disp('Cannot find the bpod path -- Recorded Users are - Quentin - Ada -- Use ini to use the default bpod folder');
 end
 end
