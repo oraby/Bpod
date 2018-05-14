@@ -167,8 +167,13 @@ switch Op
                         case 'edittext'
                             BpodSystem.GUIData.ParameterGUI.Styles(ParamNum) = 8;
                             BpodSystem.GUIHandles.ParameterGUI.Params{ParamNum} = uicontrol(htab,'Style', 'edit', 'String', ThisParam, 'Position', [HPos+220 VPos+InPanelPos+2 200 25], 'FontWeight', 'normal', 'FontSize', 12, 'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center');
+                        case 'slider'
+                            BpodSystem.GUIData.ParameterGUI.Styles(ParamNum) = 9;
+                            BpodSystem.GUIHandles.ParameterGUI.Params{ParamNum} = uicontrol(htab,'Style', 'slider', 'String', ThisParamString,...
+                                'Value', ThisParam, 'Position', [HPos+220 VPos+InPanelPos+2 200 25], 'FontWeight', 'normal', 'FontSize', 12,...
+                                'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center', 'min', 0, 'max', 1);
                         otherwise
-                            error('Invalid parameter style specified. Valid parameters are: ''edit'', ''text'', ''checkbox'', ''popupmenu'', ''togglebutton'', ''pushbutton''');
+                            error('Invalid parameter style specified. Valid parameters are: ''edit'', ''text'', ''checkbox'', ''popupmenu'', ''togglebutton'', ''pushbutton'', ''slider''');
                     end
                     InPanelPos = InPanelPos + 35;
                     ParamNum = ParamNum + 1;
@@ -264,6 +269,13 @@ switch Op
                         Params.GUI.(ThisParamName) = GUIParam;
                     elseif ~strcmpi(Params.GUI.(ThisParamName), ThisParamLastValue)
                         set(ThisParamHandle, 'String', GUIParam);
+                    end
+                case 9 % Slider
+                    GUIParam = get(ThisParamHandle, 'Value');
+                    if GUIParam ~= ThisParamLastValue
+                        Params.GUI.(ThisParamName) = GUIParam;
+                    elseif Params.GUI.(ThisParamName) ~= ThisParamLastValue
+                        set(ThisParamHandle, 'Value', GUIParam);
                     end
             end
             BpodSystem.GUIData.ParameterGUI.LastParamValues{p} = GUIParam;
