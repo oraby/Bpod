@@ -102,8 +102,11 @@ switch Op
                     else
                         BpodSystem.GUIData.ParameterGUI.LastParamValues{ParamNum} = ThisParam;
                     end
+                    ThisParamStyle = 'edit'; % Just initial assumption
+                    ThisParamCB = '';
                     if isfield(Meta, ThisParamName)
                         if isstruct(Meta.(ThisParamName))
+                            ValidField = false;
                             if isfield(Meta.(ThisParamName), 'Style')
                                 ThisParamStyle = Meta.(ThisParamName).Style;
                                 if isfield(Meta.(ThisParamName), 'String')
@@ -111,38 +114,41 @@ switch Op
                                 else
                                     ThisParamString = '';
                                 end
-                            else
-                                error(['Style not specified for parameter ' ThisParamName '.'])
+                                ValidField = true;
+                            end
+                            if isfield(Meta.(ThisParamName), 'Callback')
+                                ThisParamCB = Meta.(ThisParamName).Callback;
+                                ValidField = true;
+                            end
+                            if ~ValidField
+                                error(['Style or Callback not specified for parameter ' ThisParamName '.'])
                             end
                         else
                             error(['GUIMeta entry for ' ThisParamName ' must be a struct.'])
                         end
-                    else
-                        ThisParamStyle = 'edit';
-                        ThisParamValue = NaN;
                     end
                     BpodSystem.GUIHandles.ParameterGUI.Labels(ParamNum) = uicontrol(htab,'Style', 'text', 'String', ThisParamName, 'Position', [HPos+5 VPos+InPanelPos 200 25], 'FontWeight', 'normal', 'FontSize', 12, 'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center');
                     switch lower(ThisParamStyle)
                         case 'edit'
                             BpodSystem.GUIData.ParameterGUI.Styles(ParamNum) = 1;
-                            BpodSystem.GUIHandles.ParameterGUI.Params{ParamNum} = uicontrol(htab,'Style', 'edit', 'String', num2str(ThisParam), 'Position', [HPos+220 VPos+InPanelPos+2 200 25], 'FontWeight', 'normal', 'FontSize', 12, 'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center');
+                            BpodSystem.GUIHandles.ParameterGUI.Params{ParamNum} = uicontrol(htab,'Style', 'edit', 'String', num2str(ThisParam), 'Position', [HPos+220 VPos+InPanelPos+2 200 25], 'FontWeight', 'normal', 'FontSize', 12, 'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center','Callback',ThisParamCB);
                         case 'text'
                             BpodSystem.GUIData.ParameterGUI.Styles(ParamNum) = 2;
-                            BpodSystem.GUIHandles.ParameterGUI.Params{ParamNum} = uicontrol(htab,'Style', 'text', 'String', num2str(ThisParam), 'Position', [HPos+220 VPos+InPanelPos+2 200 25], 'FontWeight', 'normal', 'FontSize', 12, 'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center');
+                            BpodSystem.GUIHandles.ParameterGUI.Params{ParamNum} = uicontrol(htab,'Style', 'text', 'String', num2str(ThisParam), 'Position', [HPos+220 VPos+InPanelPos+2 200 25], 'FontWeight', 'normal', 'FontSize', 12, 'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center','Callback',ThisParamCB);
                         case 'checkbox'
                             BpodSystem.GUIData.ParameterGUI.Styles(ParamNum) = 3;
-                            BpodSystem.GUIHandles.ParameterGUI.Params{ParamNum} = uicontrol(htab,'Style', 'checkbox', 'Value', ThisParam, 'String', '   (check to activate)', 'Position', [HPos+220 VPos+InPanelPos+4 200 25], 'FontWeight', 'normal', 'FontSize', 12, 'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center');
+                            BpodSystem.GUIHandles.ParameterGUI.Params{ParamNum} = uicontrol(htab,'Style', 'checkbox', 'Value', ThisParam, 'String', '   (check to activate)', 'Position', [HPos+220 VPos+InPanelPos+4 200 25], 'FontWeight', 'normal', 'FontSize', 12, 'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center','Callback',ThisParamCB);
                         case 'popupmenu'
                             BpodSystem.GUIData.ParameterGUI.Styles(ParamNum) = 4;
-                            BpodSystem.GUIHandles.ParameterGUI.Params{ParamNum} = uicontrol(htab,'Style', 'popupmenu', 'String', ThisParamString, 'Value', ThisParam, 'Position', [HPos+220 VPos+InPanelPos+2 200 25], 'FontWeight', 'normal', 'FontSize', 12, 'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center');
+                            BpodSystem.GUIHandles.ParameterGUI.Params{ParamNum} = uicontrol(htab,'Style', 'popupmenu', 'String', ThisParamString, 'Value', ThisParam, 'Position', [HPos+220 VPos+InPanelPos+2 200 25], 'FontWeight', 'normal', 'FontSize', 12, 'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center','Callback',ThisParamCB);
                         case 'togglebutton' % INCOMPLETE
                             BpodSystem.GUIData.ParameterGUI.Styles(ParamNum) = 5;
-                            BpodSystem.GUIHandles.ParameterGUI.Params{ParamNum} = uicontrol(htab,'Style', 'togglebutton', 'String', ThisParamString, 'Value', ThisParam, 'Position', [HPos+220 VPos+InPanelPos+2 200 25], 'FontWeight', 'normal', 'FontSize', 12, 'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center');
+                            BpodSystem.GUIHandles.ParameterGUI.Params{ParamNum} = uicontrol(htab,'Style', 'togglebutton', 'String', ThisParamString, 'Value', ThisParam, 'Position', [HPos+220 VPos+InPanelPos+2 200 25], 'FontWeight', 'normal', 'FontSize', 12, 'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center','Callback',ThisParamCB);
                         case 'pushbutton'
                             BpodSystem.GUIData.ParameterGUI.Styles(ParamNum) = 6;
                             BpodSystem.GUIHandles.ParameterGUI.Params{ParamNum} = uicontrol(htab,'Style', 'pushbutton', 'String', ThisParamString,...
                                 'Value', ThisParam, 'Position', [HPos+220 VPos+InPanelPos+2 200 25], 'FontWeight', 'normal', 'FontSize', 12,...
-                                'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center','Callback',Meta.OdorSettings.Callback);
+                                'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center','Callback',ThisParamCB);
                         case 'table'
                             BpodSystem.GUIData.ParameterGUI.Styles(ParamNum) = 7;
                             columnNames = fieldnames(Params.(ThisParamName));
@@ -166,12 +172,14 @@ switch Op
                             BpodSystem.GUIData.ParameterGUI.LastParamValues{ParamNum} = htable.Data;
                         case 'edittext'
                             BpodSystem.GUIData.ParameterGUI.Styles(ParamNum) = 8;
-                            BpodSystem.GUIHandles.ParameterGUI.Params{ParamNum} = uicontrol(htab,'Style', 'edit', 'String', ThisParam, 'Position', [HPos+220 VPos+InPanelPos+2 200 25], 'FontWeight', 'normal', 'FontSize', 12, 'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center');
+                            BpodSystem.GUIHandles.ParameterGUI.Params{ParamNum} = uicontrol(htab,'Style', 'edit', 'String', ThisParam, 'Position', [HPos+220 VPos+InPanelPos+2 200 25], 'FontWeight', 'normal', 'FontSize', 12, 'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center','Callback',ThisParamCB);
                         case 'slider'
                             BpodSystem.GUIData.ParameterGUI.Styles(ParamNum) = 9;
-                            BpodSystem.GUIHandles.ParameterGUI.Params{ParamNum} = uicontrol(htab,'Style', 'slider', 'String', ThisParamString,...
+                            BpodSystem.GUIHandles.ParameterGUI.Params{ParamNum} = uicontrol(htab,'Style', 'slider', 'String', ThisParam,...
                                 'Value', ThisParam, 'Position', [HPos+220 VPos+InPanelPos+2 200 25], 'FontWeight', 'normal', 'FontSize', 12,...
-                                'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center', 'min', 0, 'max', 1);
+                                'BackgroundColor','white', 'FontName', 'Arial','HorizontalAlignment','Center', 'min', 0, 'max', 1,...
+                                'Callback',ThisParamCB);
+
                         otherwise
                             error('Invalid parameter style specified. Valid parameters are: ''edit'', ''text'', ''checkbox'', ''popupmenu'', ''togglebutton'', ''pushbutton'', ''slider''');
                     end
