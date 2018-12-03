@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE eagle SYSTEM "eagle.dtd">
-<eagle version="9.0.1">
+<eagle version="9.1.1">
 <drawing>
 <settings>
 <setting alwaysvectorfont="yes"/>
@@ -10601,10 +10601,10 @@ Source: AVX .. aphvc.pdf</description>
 </classes>
 <parts>
 <part name="VALVE_REGISTER" library="ic-package" deviceset="DIL20" device="" value="TPIC6A595"/>
-<part name="BNC2" library="SparkFun" deviceset="BNC" device="PTH" value="Output_Ch1"/>
-<part name="BNC1" library="SparkFun" deviceset="BNC" device="PTH" value="Output_Ch2"/>
-<part name="BNC3" library="SparkFun" deviceset="BNC" device="PTH" value="Input_Ch2"/>
-<part name="BNC4" library="SparkFun" deviceset="BNC" device="PTH" value="Input_Ch1"/>
+<part name="BNC2" library="SparkFun" deviceset="BNC" device="PTH" value="Output_Ch2"/>
+<part name="BNC1" library="SparkFun" deviceset="BNC" device="PTH" value="Output_Ch1"/>
+<part name="BNC3" library="SparkFun" deviceset="BNC" device="PTH" value="Input_Ch1"/>
+<part name="BNC4" library="SparkFun" deviceset="BNC" device="PTH" value="Input_Ch2"/>
 <part name="PORT8" library="SparkFun" deviceset="RJ45-8" device="PTH"/>
 <part name="PORT7" library="SparkFun" deviceset="RJ45-8" device="PTH"/>
 <part name="PORT6" library="SparkFun" deviceset="RJ45-8" device="PTH"/>
@@ -10871,21 +10871,21 @@ Connector</text>
 <busses>
 </busses>
 <nets>
-<net name="BNC1" class="0">
+<net name="INPUT_CH_2" class="0">
 <segment>
 <wire x1="289.56" y1="193.04" x2="287.02" y2="193.04" width="0.1524" layer="91"/>
 <pinref part="BNC4" gate="G$1" pin="OUT"/>
 <pinref part="R2" gate="G$1" pin="1"/>
 </segment>
 </net>
-<net name="BNC2" class="0">
+<net name="INPUT_CH_1" class="0">
 <segment>
 <pinref part="BNC3" gate="G$1" pin="OUT"/>
 <pinref part="R3" gate="G$1" pin="1"/>
 <wire x1="287.02" y1="170.18" x2="289.56" y2="170.18" width="0.1524" layer="91"/>
 </segment>
 </net>
-<net name="INPUT_CH2_GND" class="0">
+<net name="INPUT_CH1_GND" class="0">
 <segment>
 <wire x1="294.64" y1="165.1" x2="294.64" y2="162.56" width="0.1524" layer="91"/>
 <wire x1="294.64" y1="162.56" x2="292.1" y2="162.56" width="0.1524" layer="91"/>
@@ -12353,7 +12353,7 @@ Connector</text>
 <label x="78.74" y="27.94" size="1.27" layer="91" xref="yes"/>
 </segment>
 </net>
-<net name="OUTPUT_CH2_BNC" class="0">
+<net name="OUTPUT_CH1_BNC" class="0">
 <segment>
 <pinref part="R5" gate="G$1" pin="1"/>
 <pinref part="Q4" gate="1" pin="D"/>
@@ -12369,7 +12369,7 @@ Connector</text>
 <label x="284.48" y="116.84" size="1.27" layer="91" rot="R180" xref="yes"/>
 </segment>
 </net>
-<net name="OUTPUT_CH1_BNC" class="0">
+<net name="OUTPUT_CH2_BNC" class="0">
 <segment>
 <pinref part="BNC2" gate="G$1" pin="OUT"/>
 <wire x1="287.02" y1="139.7" x2="284.48" y2="139.7" width="0.1524" layer="91"/>
@@ -12385,7 +12385,7 @@ Connector</text>
 <label x="246.38" y="43.18" size="1.27" layer="91" rot="R90" xref="yes"/>
 </segment>
 </net>
-<net name="INPUT_CH1_GND" class="0">
+<net name="INPUT_CH2_GND" class="0">
 <segment>
 <pinref part="OPTOCOUPLER" gate="G$1" pin="2"/>
 <wire x1="139.7" y1="134.62" x2="142.24" y2="134.62" width="0.1524" layer="91"/>
@@ -12398,7 +12398,7 @@ Connector</text>
 <label x="292.1" y="185.42" size="1.27" layer="91" rot="R180" xref="yes"/>
 </segment>
 </net>
-<net name="INPUT_CH1_+" class="0">
+<net name="INPUT_CH2_+" class="0">
 <segment>
 <pinref part="R2" gate="G$1" pin="2"/>
 <wire x1="276.86" y1="193.04" x2="274.32" y2="193.04" width="0.1524" layer="91"/>
@@ -12410,7 +12410,7 @@ Connector</text>
 <label x="139.7" y="137.16" size="1.27" layer="91" rot="R180" xref="yes"/>
 </segment>
 </net>
-<net name="INPUT_CH2_+" class="0">
+<net name="INPUT_CH1_+" class="0">
 <segment>
 <pinref part="OPTOCOUPLER" gate="G$1" pin="4"/>
 <wire x1="142.24" y1="129.54" x2="139.7" y2="129.54" width="0.1524" layer="91"/>
