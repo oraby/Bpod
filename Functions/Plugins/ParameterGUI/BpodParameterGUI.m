@@ -264,11 +264,11 @@ switch Op
                     for iColumn = 1:numel(columnNames)
                         argData = [argData, Params.GUI.(ThisParamName).(columnNames{iColumn})];
                     end
-                    if any(GUIParam(:) ~= ThisParamLastValue(:)) % Change originated in the GUI propagates to TaskParameters
+                    if any(~isequal(GUIParam(:),ThisParamLastValue(:))) % Change originated in the GUI propagates to TaskParameters
                         for iColumn = 1:numel(columnNames)
                             Params.GUI.(ThisParamName).(columnNames{iColumn}) = GUIParam(:,iColumn);
                         end
-                    elseif any(argData(:) ~= ThisParamLastValue(:)) % Change originated in TaskParameters propagates to the GUI
+                    elseif any(~isequal(argData(:), ThisParamLastValue(:))) % Change originated in TaskParameters propagates to the GUI
                         ThisParamHandle.Data = argData;
                     end
                 case 8 % Edit Text
