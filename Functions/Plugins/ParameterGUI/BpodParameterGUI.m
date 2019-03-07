@@ -10,8 +10,8 @@ This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, version 3.
 
-This program is distributed  WITHOUT ANY WARRANTY and without even the 
-implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+This program is distributed  WITHOUT ANY WARRANTY and without even the
+implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 See the GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
@@ -22,10 +22,10 @@ function varargout = BpodParameterGUI(varargin)
 
 % EnhancedParameterGUI('init', ParamStruct) - initializes a GUI with edit boxes for every field in subfield ParamStruct.GUI
 % EnhancedParameterGUI('sync', ParamStruct) - updates the GUI with fields of
-%       ParamStruct.GUI, if they have not been changed by the user. 
+%       ParamStruct.GUI, if they have not been changed by the user.
 %       Returns a param struct. Fields in the GUI sub-struct are read from the UI.
 
-% This version of ParameterGUI includes improvements 
+% This version of ParameterGUI includes improvements
 % from EnhancedParameterGUI, contributed by F. Carnevale
 
 global BpodSystem
@@ -55,14 +55,14 @@ switch Op
             PanelNames = {'Parameters'};
         end
         if isfield(Params, 'GUITabs')
-            Tabs = Params.GUITabs;            
+            Tabs = Params.GUITabs;
         else
             Tabs = struct;
             Tabs.Parameters = PanelNames;
         end
         TabNames = fieldnames(Tabs);
         nTabs = length(TabNames);
-            
+
         Params = Params.GUI;
         PanelNames = PanelNames(end:-1:1);
         GUIHeight = 650;
@@ -211,8 +211,8 @@ switch Op
                     MaxHPos = HPos;
                 end
                 set(BpodSystem.ProtocolFigures.ParameterGUI, 'Position', [50 50 MaxHPos+450 MaxVPos+45]);
-            end            
-        end        
+            end
+        end
     case 'sync'
         ParamNames = BpodSystem.GUIData.ParameterGUI.ParamNames;
         nParams = BpodSystem.GUIData.ParameterGUI.nParams;
@@ -301,10 +301,10 @@ switch Op
                     Params.GUI.(ThisParamName) = GUIParam;
                 case 8 % Edit Text
                     GUIParam = get(ThisParamHandle, 'String');
-                    Params.GUI.(ThisParamName) = GUIParam;                    
+                    Params.GUI.(ThisParamName) = GUIParam;
                 case 2 % Text
                     GUIParam = get(ThisParamHandle, 'String');
-                    GUIParam = str2double(GUIParam);  
+                    GUIParam = str2double(GUIParam);
                     Params.GUI.(ThisParamName) = GUIParam;
                 case 3 % Checkbox
                     GUIParam = get(ThisParamHandle, 'Value');

@@ -10,8 +10,8 @@ This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, version 3.
 
-This program is distributed  WITHOUT ANY WARRANTY and without even the 
-implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+This program is distributed  WITHOUT ANY WARRANTY and without even the
+implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 See the GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
@@ -119,7 +119,7 @@ while BpodSystem.InStateMatrix
                     end
                     i = i + 1;
                 end
-                
+
                 SetBpodHardwareMirror2ReflectEvent(CurrentEvent);
                 if NewState ~= BpodSystem.CurrentStateCode
                     if  NewState <= nTotalStates
@@ -247,7 +247,7 @@ if CurrentState > 0
     BpodSystem.HardwareState.BNCOutputs = bitget(BNCState,1:2);
     WireState = BpodSystem.StateMatrix.OutputMatrix(CurrentState, 3);
     BpodSystem.HardwareState.WireOutputs = bitget(WireState,1:4);
-    
+
     BpodSystem.HardwareState.PWMLines(1:8) = BpodSystem.StateMatrix.OutputMatrix(CurrentState, 10:17);
     BpodSystem.HardwareState.Serial1Code = BpodSystem.StateMatrix.OutputMatrix(CurrentState,4);
     BpodSystem.HardwareState.Serial2Code = BpodSystem.StateMatrix.OutputMatrix(CurrentState,5);
@@ -327,18 +327,18 @@ for x = 1:nEvents
     end
 end
 function TimeString = Secs2HMS(Seconds)
-H = floor(Seconds/3600); 
+H = floor(Seconds/3600);
 Seconds = Seconds-(H*3600);
-M = floor(Seconds/60); 
+M = floor(Seconds/60);
 S = Seconds - (M*60);
 if M < 10
     MPad = '0';
-else 
+else
     MPad = '';
 end
 if S < 10
     SPad = '0';
-else 
+else
     SPad = '';
 end
 TimeString = [num2str(H) ':' MPad num2str(M) ':' SPad num2str(S)];
