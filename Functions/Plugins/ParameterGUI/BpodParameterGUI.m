@@ -90,7 +90,7 @@ switch Op
                 ThisPanelParamNames = Panels.(ThisTabPanelNames{p});
                 ThisPanelParamNames = ThisPanelParamNames(end:-1:1);
                 nParams = length(ThisPanelParamNames);
-                ThisPanelHeight = (45*nParams)+5;
+                ThisPanelHeight = (35*nParams)+35;
                 BpodSystem.GUIHandles.ParameterGUI.Panels.(ThisTabPanelNames{p}) = uipanel(htab,'title', ThisTabPanelNames{p},'FontSize',12, 'FontWeight', 'Bold', 'BackgroundColor','white','Units','Pixels', 'Position',[HPos VPos 430 ThisPanelHeight]);
                 InPanelPos = 10;
                 for i = 1:nParams
