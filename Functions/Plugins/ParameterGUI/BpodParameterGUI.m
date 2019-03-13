@@ -324,18 +324,32 @@ switch lower(ThisParamStyle)
     case 'table'
         BpodSystem.GUIData.ParameterGUI.Styles(ParamNum) = 7;
         columnNames = fieldnames(Params.(ThisParamName));
-        if isfield(Meta.(ThisParamName),'ColumnLabel')
-            columnLabel = Meta.(ThisParamName).ColumnLabel;
-        else
-            columnLabel = columnNames;
+
+        % ColumnName amd 'ColumnLabel' are redundant, leaving for backward
+        % compitability
+        columnAttrs = containers.Map(...
+            {'ColumnName', 'ColumnLabel', 'ColumnWidth', 'ColumnEditable',           'ColumnFormat'},...
+            {'numbered'    {}           , 'auto'       , true(1,numel(columnNames)), {}            });
+        for colName = keys(columnAttrs)
+            colName = colName{1};
+            if isfield(Meta.(ThisParamName), colName)
+                columnAttrs(colName) = Meta.(ThisParamName).(colName);
+            end
         end
+        if ~isequal(columnAttrs('ColumnLabel'), {})
+            columnAttrs('ColumnName') = columnAttrs('ColumnLabel');
+        end
+        remove(columnAttrs, 'ColumnLabel');
+
         tableData = [];
         for iTableCol = 1:numel(columnNames)
             tableData = [tableData, Params.(ThisParamName).(columnNames{iTableCol})];
         end
 %                             tableData(:,2) = tableData(:,2)/sum(tableData(:,2));
-        htable = uitable(htab,'data',tableData,'columnname',columnLabel,...
-            'ColumnEditable',true(1,numel(columnLabel)), 'FontSize', 12);
+        funcParams = [columnAttrs.keys; columnAttrs.values];
+        funcParams = reshape(funcParams, [1,numel(funcParams)]);
+        funcParams = [{htab}, 'data',tableData,funcParams,'FontSize',12];
+        htable = uitable(funcParams{:});
         htable.Position([3 4]) = htable.Extent([3 4]);
         htable.Position([1 2]) = [HPos+220 VPos+InPanelPos+2];
         BpodSystem.GUIHandles.ParameterGUI.Params{ParamNum} = htable;
