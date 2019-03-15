@@ -37,7 +37,6 @@ switch Op
         ParamNames = fieldnames(Params.GUI);
         nParams = length(ParamNames);
         BpodSystem.GUIData.ParameterGUI.ParamNames = cell(1,nParams);
-        BpodSystem.GUIData.ParameterGUI.nParams = nParams;
         BpodSystem.GUIHandles.ParameterGUI.Labels = zeros(1,nParams);
         BpodSystem.GUIHandles.ParameterGUI.Params = cell(1,nParams);
         BpodSystem.GUIData.ParameterGUI.LastParamValues = cell(1,nParams);
@@ -163,6 +162,10 @@ switch Op
                 set(BpodSystem.ProtocolFigures.ParameterGUI, 'Position', [50 50 MaxHPos+450 MaxVPos+45]);
             end
         end
+        % Assign n-params here as nParams might have changed if we have
+        % repeated elements in the GUI.
+        BpodSystem.GUIData.ParameterGUI.nParams = length(...
+                               BpodSystem.GUIData.ParameterGUI.ParamNames);
     case 'sync'
         ParamNames = BpodSystem.GUIData.ParameterGUI.ParamNames;
         nParams = BpodSystem.GUIData.ParameterGUI.nParams;
