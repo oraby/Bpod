@@ -64,7 +64,7 @@ switch Op
 
         Params = Params.GUI;
         PanelNames = PanelNames(end:-1:1);
-        GUIHeight = 650;
+        GUIHeight = 620;
         MaxVPos = 0;
         MaxHPos = 0;
         ParamNum = 1;
@@ -139,8 +139,8 @@ switch Op
                 Wrap = 0;
                 if p < nPanels
                     NextPanelParams = Panels.(ThisTabPanelNames{p+1});
-                    NextPanelSize = (length(NextPanelParams)*45) + 5;
-                    if VPos + ThisPanelHeight + 45 + NextPanelSize > GUIHeight
+                    NextPanelSize = (length(NextPanelParams)*15) + 5;
+                    if VPos + ThisPanelHeight + 25 + NextPanelSize > GUIHeight
                         Wrap = 1;
                     end
                 end
@@ -159,7 +159,7 @@ switch Op
                 if HPos > MaxHPos
                     MaxHPos = HPos;
                 end
-                set(BpodSystem.ProtocolFigures.ParameterGUI, 'Position', [50 50 MaxHPos+450 MaxVPos+45]);
+                set(BpodSystem.ProtocolFigures.ParameterGUI, 'Position', [50 50 MaxHPos+450 MaxVPos+15]);
             end
         end
         % Assign n-params here as nParams might have changed if we have
