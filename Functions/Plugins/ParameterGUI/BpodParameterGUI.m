@@ -103,6 +103,7 @@ switch Op
                     end
                     ThisParamStyle = 'edit'; % Just initial assumption
                     ThisParamCB = '';
+                    ThisParamString = '';
                     if isfield(Meta, ThisParamName)
                         if isstruct(Meta.(ThisParamName))
                             ValidField = false;
@@ -110,8 +111,6 @@ switch Op
                                 ThisParamStyle = Meta.(ThisParamName).Style;
                                 if isfield(Meta.(ThisParamName), 'String')
                                     ThisParamString = Meta.(ThisParamName).String;
-                                else
-                                    ThisParamString = '';
                                 end
                                 ValidField = true;
                             end
