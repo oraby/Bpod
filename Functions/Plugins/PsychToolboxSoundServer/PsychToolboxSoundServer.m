@@ -48,9 +48,24 @@ switch Function
             if ispc
                 for x = 1:nDevices
                     if strcmp(AudioDevices(x).HostAudioAPIName, 'ASIO')
-                        if AudioDevices(x).NrOutputChannels == 8
+                        % 2019-10-31 M. wulf:
+                        % I don't know why the ASIO driver must exactly support
+                        % 8 input channels. The Xonar SE cards support up to 10
+                        % channels via the ASIO interface and would fail to
+                        % run. But if its main output in the driver is set
+                        % to Headphone, it seems that than only 6 channels
+                        % can be accessed...
+                        %if AudioDevices(x).NrOutputChannels == 8
+                        if AudioDevices(x).NrOutputChannels >= 8
                             nCandidates = nCandidates + 1;
                             CandidateDevices(nCandidates) = AudioDevices(x).DeviceIndex;
+                        else
+                            if ( (strncmpi(AudioDevices(x).DeviceName, 'Xonar SoundCard(64)', 19)) && (AudioDevices(x).NrOutputChannels == 6)  )
+                                tempMessage = ['Xonar 5.1 Soundcard detected but only with 6 ASIO output channels! '...
+                                               'It seems that the driver is set to Headphone-Mode. '...
+                                               'Please close MATLAB, change driver output mode to ''Speakers'' and start MATLAB again!'];
+                                msgbox(tempMessage, 'Check Sound Settings!', 'warn');
+                            end
                         end
                     end
                 end
@@ -58,11 +73,18 @@ switch Function
             else
                 for x = 1:nDevices
                     DeviceName = AudioDevices(x).DeviceName;
-                    if ~isempty(strfind(DeviceName, 'Xonar DX: Multichannel')) || ~isempty(strfind(DeviceName, 'Xonar U7: USB Audio')) % Assumes ASUS Xonar DX or U7 Soundcard
-                        if AudioDevices(x).NrOutputChannels == 8
+                    if ( ~isempty(strfind(DeviceName, 'Xonar DX: Multichannel')) ||...
+                         ~isempty(strfind(DeviceName, 'Xonar U7: USB Audio')) ) % Assumes ASUS Xonar DX or U7 Soundcard
+                        % 2019-10-31 M. wulf:
+                        % I don't know why the ASIO driver must exactly support
+                        % 8 input channels. The Xonar SE cards support 10
+                        % channels via the ASIO interface and would fail to
+                        % run...
+                        %if AudioDevices(x).NrOutputChannels == 8
+                        if AudioDevices(x).NrOutputChannels >= 8
                             nCandidates = nCandidates + 1;
                             CandidateDevices(nCandidates) = AudioDevices(x).DeviceIndex;
-                        end
+                        end 
                     end
                 end
             end
@@ -71,6 +93,18 @@ switch Function
                 for x = 1:nCandidates
                     disp(['Candidate device found! Trying candidate ' num2str(x) ' of ' num2str(nCandidates)])
                     try
+                        % 2019-10-13 M. Wulf: Just added comments on what's going on here...
+                        % Try to open the PsychPortAudio interface
+                        % PsychPortAudio('Open', deviceid, mode, reqlatencyclass, freq, channels, buffersize);
+                        % mode = 9:
+                        %  Sound Playback Only; Master mode (needs additional slaves for playback)
+                        % reqlatencyclass = 4:
+                        %   Take full control over the audio device but fail if device can’t meet the strictest requirements
+                        % freq = SF:
+                        %   192 kHz sampling frequency
+                        % channels = 6:
+                        %   Channels 1 and 2 for sound output, 3-6 for TTLpulses
+                        % buffersize = 32:
                         CandidateDevice = PsychPortAudio('Open', CandidateDevices(x), 9, 4, SF, 6 , 32);
                         BpodSystem.SystemSettings.SoundDeviceID = CandidateDevices(x);
                         SaveBpodSystemSettings;
