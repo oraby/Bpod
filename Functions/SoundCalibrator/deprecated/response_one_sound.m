@@ -2,8 +2,9 @@
 % amplitude and frequency going into the speaker.
 %
 % Santiago Jaramillo - 2007.11.14
-% Uri  - 2013.05.27
-% Fede - 2015.09.10
+% Uri   - 2013.05.27
+% Fede  - 2015.09.10
+% Michi - 2019.10.31 Adjusting to session based data acquisition
 
 function [BandPower, signal_toplot, Parameters, ThisPSD] = response_one_sound(SoundParam,BandLimits)
 global BpodSystem
@@ -42,9 +43,21 @@ PsychToolboxSoundServer('Play', 1);
 
 pause(0.1);
 if ispc
-    start(BpodSystem.PluginObjects.USB1608G.Board);
-    pause(.5);
-    RawSignal = getdata(BpodSystem.PluginObjects.USB1608G.Board)';
+    % 2019-10-31 Schmack, Wulf:
+    % Since the direct access on the data acquisition hardware (e.g. via 
+    % 'analoginput') is no longer supported we have to switch to the newer
+    % session-based interface!
+    
+    % Original code - Start
+    %start(BpodSystem.PluginObjects.USB1608G.Board);
+    %pause(.5);
+    %RawSignal = getdata(BpodSystem.PluginObjects.USB1608G.Board)';
+    % Original code - End
+    
+    % Set the recording duration to 0.5 seconds
+    BpodSystem.PluginObjects.SoundCalibration.DAQSession.DurationInSeconds = 0.5;
+    % Start the recording in foreground (blocking MATLAB) and retrieve the data
+    RawSignal = startForeground(BpodSystem.PluginObjects.SoundCalibration.DAQSession);
 else
     data = mcc_daq('n_scan',n_data,'freq',Parameters.FsIn,'n_chan',n_chan);
     RawSignal = data(channel,:); 

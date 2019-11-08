@@ -26,6 +26,10 @@ function SoundData = CalibratedPureTone(Frequency, Duration, Intensity, Side, Ra
 %
 % Additional required arguments are: SamplingFreq (Sampling Frequency of
 % the sound server in Hz), and CalibrationData (also stored in BpodSystem.CalibrationTables.SoundCal)
+%
+% M. Wulf, 2019-11-06: Updated the code to be able to interpolate the amplitudes
+%                      with different methods
+
 nChannels = length(CalibrationData);
 nSamples = Duration*SamplingFreq;
 nRampSamples = RampDuration*SamplingFreq;
@@ -53,7 +57,20 @@ switch Side
 end
     
 if (UseLeft)
-    toneAttLeft = polyval(CalibrationData(1,1).Coefficient,Frequency);
+    % M. Wulf 20109-11-06: Check for different interpolation methods...
+    if isfield(CalibrationData(1, 1), 'FitMethod')
+        fitMethod = CalibrationData(1, 1).FitMethod;
+        switch(lower(fitMethod))
+            case 'pchip'
+                toneAttLeft = ppval(CalibrationData(1, 1).Coefficient, Frequency);
+                
+            otherwise
+                error('Unsupported interpolation method ''%s'' being used during calibration', fitMethod);
+        end
+    else
+        toneAttLeft = polyval(CalibrationData(1, 1).Coefficient, Frequency);
+    end
+    
     attFactorLeft = toneAttLeft * sqrt(10^((Intensity - CalibrationData(1,1).TargetSPL)/10));
     SoundVecLeft = attFactorLeft * sin(2*pi*Frequency*(1/SamplingFreq:1/SamplingFreq:Duration));
     if nRampSamples > 0
@@ -64,7 +81,20 @@ if (UseLeft)
     end
 end
 if (UseRight)
-    toneAttRight = polyval(CalibrationData(1,2).Coefficient,Frequency);
+    % M. Wulf 20109-11-06: Check for different interpolation methods...
+    if isfield(CalibrationData(1, 2), 'FitMethod')
+        fitMethod = CalibrationData(1, 2).FitMethod;
+        switch(lower(fitMethod))
+            case 'pchip'
+                toneAttRight = ppval(CalibrationData(1, 2).Coefficient, Frequency);
+                
+            otherwise
+                error('Unsupported interpolation method ''%s'' being used during calibration', fitMethod);
+        end
+    else
+        toneAttRight = polyval(CalibrationData(1, 2).Coefficient, Frequency);
+    end
+    
     attFactorRight = toneAttRight * sqrt(10^((Intensity - CalibrationData(1,2).TargetSPL)/10));
     SoundVecRight = attFactorRight * sin(2*pi*Frequency*(0:1/SamplingFreq:Duration));
     if nRampSamples > 0

@@ -22,7 +22,7 @@ function varargout = TestSoundManager(varargin)
 
 % Edit the above text to modify the response to help TestSoundManager
 
-% Last Modified by GUIDE v2.5 18-Sep-2015 12:21:16
+% Last Modified by GUIDE v2.5 06-Nov-2019 16:04:49
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -43,6 +43,7 @@ else
 end
 % End initialization code - DO NOT EDIT
 
+
 % --- Executes just before TestSoundManager is made visible.
 function TestSoundManager_OpeningFcn(hObject, eventdata, handles, varargin)
 % This function has no output args, see OutputFcn.
@@ -51,105 +52,29 @@ function TestSoundManager_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to TestSoundManager (see VARARGIN)
 
+% Choose default command line output for SoundCalibrationManager
+handles.output = hObject;
 
+% Predefine additional fields accessible using handles structure
+%---------------------------------------------------------------
+handles.calibrationFile = [];
+handles.SoundCal        = [];
+
+% Disable play button
+set(handles.pushbutton_Play, 'Enable', 'off');
+
+% Update handles structure
+guidata(hObject, handles);
 
 % --- Outputs from this function are returned to the command line.
-function varargout = TestSoundManager_OutputFcn(hObject, eventdata, handles)
+function varargout = TestSoundManager_OutputFcn(hObject, eventdata, handles) %#ok<*STOUT>
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
 % Get default command line output from handles structure
+nan;
 
-
-
-% --- Executes during object creation, after setting all properties.
-function frequency_edit_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to frequency_edit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-% --- Executes during object creation, after setting all properties.
-function volume_edit_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to volume_edit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
-function volume_edit_Callback(hObject, eventdata, handles)
-% hObject    handle to volume_edit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of volume_edit as text
-%        str2double(get(hObject,'String')) returns contents of volume_edit as a double
-
-
-% --- Executes on button press in play.
-function play_Callback(hObject, eventdata, handles)
-% hObject    handle to play (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% --- Parameters of the test ---
-toneDuration = 1;
-fsOut = 192000;
-tvec = 0:1/fsOut:toneDuration;
-
-CalFilePath = get(handles.filename_edit, 'String');
-try
-    open(CalFilePath); % Creates local variable "SoundCal", a struct with the cal table and coefficients
-catch
-    error('Could not open calibration file');
-end
-frequency = str2double(get(handles.frequency_edit, 'String'));
-speaker = get(handles.speaker1, 'Value');
-if speaker == 0 % Other radio button is selected
-    speaker = 2;
-end
-% Attenuation for this frequency at Target SPL
-toneAtt = polyval(SoundCal(1,handles.speaker).Coefficient,frequency);
-
-diffSPL = str2double(handles.volume_edit.String) - SoundCal(1,speaker).TargetSPL;
-attFactor = sqrt(10^(diffSPL/10));
-
-amplitude = toneAtt*attFactor;
-
-SoundVec = amplitude * sin(2*pi*frequency*tvec);
-
-if handles.speaker==1
-    SoundVec = [ SoundVec; zeros(1,length(SoundVec)) ];
-end
-if handles.speaker==2
-    SoundVec = [ zeros(1,length(SoundVec)); SoundVec ];
-end
-
-% Load sound
-PsychToolboxSoundServer('Load', 1, SoundVec);
-% --- Play the sound ---
-PsychToolboxSoundServer('Play', 1);
-
-
-% --- Executes on button press in close.
-function close_Callback(hObject, eventdata, handles)
-% hObject    handle to close (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-close(handles.gui)
 
 % --- Executes when selected object changed in unitgroup.
 function unitgroup_SelectionChangedFcn(hObject, eventdata, handles)
@@ -157,25 +82,35 @@ function unitgroup_SelectionChangedFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-if (hObject == handles.speaker1)
+if (hObject == handles.radiobutton_speaker1)
     handles.speaker=1;
 else
     handles.speaker=2;
 end
 guidata(hObject,handles)
 
-function filename_edit_Callback(hObject, eventdata, handles)
-% hObject    handle to filename_edit (see GCBO)
+
+function edit_Sample_Rate_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_Sample_Rate (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of filename_edit as text
-%        str2double(get(hObject,'String')) returns contents of filename_edit as a double
+% Hints: get(hObject,'String') returns contents of edit_Sample_Rate as text
+%        str2double(get(hObject,'String')) returns contents of edit_Sample_Rate as a double
 
+% Check value
+temp = str2double(strtrim(get(hObject,'String')));
+if (isnan(temp))
+    msgbox('Sample rate must be a numeric value!', 'Wrong format', 'error');
+elseif (temp <= 0)
+    msgbox('Sample rate must be a positive numeric value!', 'Wrong format', 'error');
+elseif (temp > 192)
+    msgbox('Sample rate must not be higher than 192 kHz!', 'Unsupported value', 'error');
+end
 
 % --- Executes during object creation, after setting all properties.
-function filename_edit_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to filename_edit (see GCBO)
+function edit_Sample_Rate_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_Sample_Rate (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -186,24 +121,356 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-% --- Executes on button press in file.
-function file_Callback(hObject, eventdata, handles)
-% hObject    handle to file (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-[FileName,PathName] = uigetfile;
-handles.calfile = fullfile(PathName,FileName);
-handles.filename_edit.String = handles.calfile;
-load(handles.calfile)
-handles.SoundCal = SoundCal;
-guidata(hObject,handles)
-
-
-
-function frequency_edit_Callback(hObject, eventdata, handles)
-% hObject    handle to frequency_edit (see GCBO)
+function edit_Frequency_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_Frequency (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of frequency_edit as text
-%        str2double(get(hObject,'String')) returns contents of frequency_edit as a double
+% Hints: get(hObject,'String') returns contents of edit_Frequency as text
+%        str2double(get(hObject,'String')) returns contents of edit_Frequency as a double
+
+% Check value
+temp = str2double(strtrim(get(hObject,'String')));
+if (isnan(temp))
+    msgbox('Frequency must be a numeric value!', 'Wrong format', 'error');
+elseif (temp <= 0)
+    msgbox('Frequency must be a positive numeric value!', 'Wrong format', 'error');
+end
+
+% --- Executes during object creation, after setting all properties.
+function edit_Frequency_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_Frequency (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+function edit_Volume_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_Volume (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_Volume as text
+%        str2double(get(hObject,'String')) returns contents of edit_Volume as a double
+
+% Check value
+temp = str2double(strtrim(get(hObject,'String')));
+if (isnan(temp))
+    msgbox('Volume must be a numeric value!', 'Wrong format', 'error');
+elseif (temp <= 0)
+    msgbox('Volume must be a positive numeric value!', 'Wrong format', 'error');
+end
+
+% --- Executes during object creation, after setting all properties.
+function edit_Volume_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_Volume (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+function edit_Duration_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_Duration (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_Duration as text
+%        str2double(get(hObject,'String')) returns contents of edit_Duration as a double
+
+% Check value
+temp = str2double(strtrim(get(hObject,'String')));
+if (isnan(temp))
+    msgbox('Duration must be a numeric value!', 'Wrong format', 'error');
+elseif (temp <= 0)
+    msgbox('Duration must be a positive numeric value!', 'Wrong format', 'error');
+end
+
+% --- Executes during object creation, after setting all properties.
+function edit_Duration_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_Duration (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in pushbutton_Browse.
+function pushbutton_Browse_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_Browse (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Show file open dialog
+[fileName, pathName] = uigetfile;
+
+% Check if user canceled dialog
+if ( isnumeric(fileName) && (fileName == 0) )
+    return;
+end
+
+% Creat fully qualified filename...
+tempFullFile = fullfile(pathName, fileName);
+
+% ... and copy it into edit_Filename
+set(handles.edit_Filename, 'String', tempFullFile);
+
+% Update handles structure
+guidata(hObject, handles);
+
+% Invoke callback for edit_Filename
+edit_Filename_Callback(handles.edit_Filename, [], handles);
+
+% Retrieve handles structure
+handles = guidata(hObject);
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+function edit_Filename_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_Filename (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of edit_Filename as text
+%        str2double(get(hObject,'String')) returns contents of edit_Filename as a double
+
+% Check value
+temp = strtrim(get(hObject,'String'));
+
+if (isempty(temp))
+    % Reset values
+    set(handles.text_Cal_File_Value, 'String', '-');
+    set(handles.textCal_Date_Value,  'String', '-');
+    set(handles.text_Target_Value,   'String', '-');
+    handles.calibrationFile = [];
+    handles.SoundCal        = [];
+    
+    % Disable play button
+    set(handles.pushbutton_Play, 'Enable', 'off');
+    
+    % Update handles structure
+    guidata(hObject, handles);
+    
+    % Leave callback function
+    return;
+else
+    [tempPath, tempFileName, tempExtension] = fileparts(temp);
+    
+    if (exist(temp, 'file') == 2)
+        % Try to open the sound calibration file
+        load(temp); %#ok<LOAD>
+        
+        if ( exist('SoundCal', 'var') == 1 )
+            
+            % Define necessary fields in SoundCal struct
+            necessaryFields = {'Table', 'CalibrationTargetRange', 'TargetSPL', 'LastDateModified', 'Coefficient'};
+            
+            % Check for those fields
+            fields = isfield(SoundCal, necessaryFields);
+            wrongFields = find(fields == 0); 
+            
+            if (~isempty(wrongFields))
+                tempMsg = sprintf('%s field in sound calibration file %s%s is missing!', necessaryFields{wrongFields(1)}, tempFileName, tempExtension);
+                msgBox(tempMsg, 'Wrong file format', 'error');
+                return;
+            end
+            
+            % Store calibration data in handles structure
+            handles.SoundCal = SoundCal;
+            
+            % Delete SoundCal struct from workspace
+            clear SoundCal;
+            
+        else
+            % Output error message
+            tempMsg = sprintf('Calibration file ''%s%s'' contains an incompatible format!', tempFileName, tempExtension);
+            msgbox(tempMsg, 'Error loading file', 'error');
+            
+            % Leave callback function
+            return;
+        end
+        
+    else
+        % Output error message
+        tempMsg = sprintf('Calibration file ''%s.%s'' could not be found in path %s!', tempFileName, tempExtension, tempPath);
+        msgbox(tempMsg, 'Error loading file', 'error');
+        
+        % Leave callback function
+        return;
+    end
+end
+
+% Update text fields
+set(handles.text_Cal_File_Value, 'String', [tempFileName tempExtension]);
+set(handles.textCal_Date_Value,  'String', handles.SoundCal.LastDateModified);
+set(handles.text_Target_Value,   'String', [num2str(handles.SoundCal.TargetSPL) ' dB_SPL']);
+
+% Enable play button
+set(handles.pushbutton_Play, 'Enable', 'on');
+
+% Update handles structure
+guidata(hObject, handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function edit_Filename_CreateFcn(hObject, eventdata, handles) %#ok<*INUSD>
+% hObject    handle to edit_Filename (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in pushbutton_Play.
+function pushbutton_Play_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_Play (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+if (isempty(handles.SoundCal))
+    % Output error message
+    msgbox('No sound calibration file loaded!', 'No file ', 'error');
+    return;
+end
+
+% Get parameters
+% --------------
+Fs   = str2double(get(handles.edit_Sample_Rate, 'String'));
+f0   = str2double(get(handles.edit_Frequency, 'String'));
+a_dB = str2double(get(handles.edit_Volume, 'String'));
+T0   = str2double(get(handles.edit_Duration, 'String'));
+
+% --------------------------------------------------------------------------
+% Check input values - Start
+% --------------------------------------------------------------------------
+% Check Sample Rate
+if (isnan(Fs))
+    msgbox('Sample rate must be a numeric value!', 'Wrong format', 'error');
+    return;
+elseif (Fs <= 0)
+    msgbox('Sample rate must be a positive numeric value!', 'Wrong format', 'error');
+    return;
+elseif (Fs > 192)
+    msgbox('Sample rate must not be higher than 192 kHz!', 'Unsupported value', 'error');
+    return;
+end
+
+% Check Frequency
+if (isnan(f0))
+    msgbox('Frequency must be a numeric value!', 'Wrong format', 'error');
+    return;
+elseif (f0 <= 0)
+    msgbox('Frequency must be a positive numeric value!', 'Wrong format', 'error');
+    return;
+end
+
+% Check Volume
+if (isnan(a_dB))
+    msgbox('Volume must be a numeric value!', 'Wrong format', 'error');
+    return;
+elseif (a_dB <= 0)
+    msgbox('Volume must be a positive numeric value!', 'Wrong format', 'error');
+    return;
+end
+
+% Check Duration
+if (isnan(T0))
+    msgbox('Duration must be a numeric value!', 'Wrong format', 'error');
+    return;
+elseif (T0 <= 0)
+    msgbox('Duration must be a positive numeric value!', 'Wrong format', 'error');
+    return;
+end
+
+% Check selected speaker
+if get(handles.radiobutton_speaker1, 'Value')
+    handles.speaker = 1;
+elseif get(handles.radiobutton_speaker2, 'Value')
+    handles.speaker = 2;
+else
+    msgBox('Invalid speaker selection!', 'Error', 'error');
+    return;
+end
+% --------------------------------------------------------------------------
+% Check input values - End
+% --------------------------------------------------------------------------
+
+if (size(handles.SoundCal, 2) < handles.speaker)
+    msgbox('Selected sound calibration file has only calibration values for speaker 1 (left)', ...
+           'No calibration for speaker', 'error');
+    return;
+end
+
+
+if isfield(handles.SoundCal(1, handles.speaker), 'FitMethod')
+    fitMethod = handles.SoundCal(1, handles.speaker).FitMethod;
+    switch(lower(fitMethod))
+        case 'pchip'
+            att = ppval(handles.SoundCal(1, handles.speaker).Coefficient, f0);
+            
+        otherwise
+            tempMsg = sprintf('Unsupported interpolation method ''%s'' being used during calibration', fitMethod);
+            msgBox(tempMsg, 'Unknown interpolation', 'error');
+            return;
+    end
+else
+    att = polyval(handles.SoundCal(1, handles.speaker).Coefficient, f0);
+end
+
+% Get the difference between the calibrated sound pressure level and the
+% currently desired sound pressure level
+diff_dB_SPL = a_dB - handles.SoundCal(1, handles.speaker).TargetSPL;
+
+% Convert this difference into an amplidute correction factor (that's why
+% deviding by 20 - or taking sqrt of the result if deviding by 10)
+% If difference is positive, the correction factor will be > 1 otherwise < 1
+corrFactor = 10^(diff_dB_SPL/20);
+
+% correct the amplitude
+a = att * corrFactor;
+
+% Generate time vecotr for creating sound
+t = 0:1/Fs:T0;
+
+% Generate sound - pure tone
+soundOutput = a * sin(2 * pi * f0 * t);
+
+if handles.speaker==1
+    soundOutput = [soundOutput; zeros(1,length(soundOutput))];
+end
+if handles.speaker==2
+    soundOutput = [zeros(1,length(soundOutput)); soundOutput];
+end
+
+% Load the sound vector into sound server's channel 1
+PsychToolboxSoundServer('Load', 1, soundOutput);
+
+% Start playing output channel 1
+PsychToolboxSoundServer('Play', 1);
+
+
+% --- Executes on button press in pushbutton_Close.
+function pushbutton_Close_Callback(hObject, eventdata, handles) %#ok<*INUSL,*DEFNU>
+% hObject    handle to pushbutton_Close (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+delete(handles.TestSoundGUI)

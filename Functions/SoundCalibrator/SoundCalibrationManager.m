@@ -21,9 +21,9 @@ function varargout = SoundCalibrationManager(varargin)
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Edit the above text to modify the response to help SoundCalibrationManager
+% Edit the above text_Amp_Condition to modify the response to help SoundCalibrationManager
 
-% Last Modified by GUIDE v2.5 18-Sep-2015 10:31:07
+% Last Modified by GUIDE v2.5 06-Nov-2019 09:44:59
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -46,31 +46,110 @@ end
 
 
 % --- Executes just before SoundCalibrationManager is made visible.
-function SoundCalibrationManager_OpeningFcn(hObject, eventdata, handles, varargin)
+function SoundCalibrationManager_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to SoundCalibrationManager (see VARARGIN)
-global BpodSystem
-if ispc % Start the MCC board with PsychToolbox
-    BpodSystem.PluginObjects.USB1608G = struct;
-    warning off; BpodSystem.PluginObjects.USB1608G.Board = analoginput('mcc', 0); warning on;
-    BpodSystem.PluginObjects.USB1608G.Board.SampleRate = 200000;
-    BpodSystem.PluginObjects.USB1608G.Board.SamplesPerTrigger = 200000*.3;
-    BpodSystem.PluginObjects.USB1608G.Ch0 = addchannel(BpodSystem.PluginObjects.USB1608G.Board, 0);
-    BpodSystem.PluginObjects.USB1608G.Ch0.InputRange = [-10 10];
-end
+
+% UIWAIT makes SoundCalibrationManager wait for user response (see UIRESUME)
+% uiwait(handles.figure1);
+global BpodSystem %#ok<NUSED>
+
 % Choose default command line output for SoundCalibrationManager
 handles.output = hObject;
-    
+
+% Predefine additional fields accessible using handles structure
+%---------------------------------------------------------------
+% DAQ-related variables
+handles.DAQDevicesAvailable = [];
+handles.DAQ.Session         = [];
+handles.DAQ.VendorID        = [];
+handles.DAQ.DeviceID        = [];
+handles.DAQ.InputChannel    = [];
+handles.DAQ.SamplingRate    = [];
+handles.DAQ.Range           = [];
+
+handles.SoundCal.numSpeakers  = 0;
+handles.SoundCal.ampCondition = 0;
+handles.SoundCal.targetSPL    = 0;
+handles.SoundCal.numRepeats   = 0;
+handles.SoundCal.numFreqs     = 0;
+handles.SoundCal.scaling      = [];
+handles.SoundCal.startFreq    = 0;
+handles.SoundCal.stopFreq     = 0;
+handles.SoundCal.bandwidth    = 0;
+
+handles.SoundCal.currSpeaker   = 0;
+handles.SoundCal.currFrequency = 0;
+handles.SoundCal.currAmplitude = 0;
+
+handles.SoundCal.toneDuration              = 1;      % Duration of playback
+handles.SoundCal.timeToRecord              = 0.5;    % Duration of recording
+handles.SoundCal.delayRecording            = 0.1;    % Amount of time after playback started to start recording
+handles.SoundCal.samplingFrequncy          = 192000; % Sampling rate of sound card
+handles.SoundCal.PSDWindowLength           = 2^16;   % Window length for PSD estimate
+handles.SoundCal.initialAmplitude          = 0.2;    % Initial Amplitude 
+handles.SoundCal.acceptableTolerance_dBSPL = 0.5;    % Max. tolerable difference
+handles.SoundCal.maxInterations            = 10;     % Max. number of iterations per frequency
+handles.SoundCal.pressureReference         = 20e-6;  % Pressure reference p0 in Pascal (Pa)
+
 handles.filename = [];
+
+% Create text label for physical unit of edit_TargetSPL (dB_SPL)
+handles.dB_SPL_label= javaObjectEDT('javax.swing.JLabel','<HTML><font face="arial" size="4">dB<sub>SPL</sub></font></HTML>');
+javacomponent(handles.dB_SPL_label,[477,595,40,16], gcf);
+
+set(handles.ax_Attenuation, 'Visible', 'off');
+set(handles.ax_Attenuation_dB, 'Visible', 'off');
+
+% since the Data Acquisition Toolbox is only available on Windows, we have to
+% distinguish between the different OS versions...
+if ispc
+    if (license('test','Data_Acq_Toolbox') ~= 1)
+        msgbox('No Data Acquisition Toolbox available on this system!', ...
+               'No Data Acquisition Toolbox found...', 'error');
+        error('No Data Acquisition Toolbox available on this system!');
+    end
+    % Get a list of all connected data acquisition devices
+    handles.DAQDevicesAvailable = daq.getDevices();
+    if (isempty(handles.DAQDevicesAvailable))
+        msgbox('No Data Acquisition Systems found on this system! Connect DAQ device and restart MATLAB.', ...
+               'No DAQ devices found...', 'error');
+        error('No Data Acquisition Systems found on this system!');
+    end
+    devNames = cell(1, length(handles.DAQDevicesAvailable));
+    for devCntr = 1:1:length(handles.DAQDevicesAvailable)
+        currDev = handles.DAQDevicesAvailable(devCntr);
+        devNames{1, devCntr} = sprintf('%s - %s', currDev.Vendor.ID, currDev.ID);
+    end
+    
+    % Set values for DAQ Device popupmenu
+    handles.popupmenu_DAQ_Device.String = devNames;
+    
+else
+    % If this code is executed on a Linux or macOSX system, we can't access the
+    % Data Acquisition Toolbox...
+    % 
+    % M. Wulf, 2019-11-04:
+    % This code needs to be tested on Linux and Mac!!!
+    handles.DAQ.VendorID = 'mcc';
+    handles.DAQ.DeviceID = 'Board0';
+    handles.popupmenu_DAQ_Device.String = {sprintf('%s - %s', handles.DAQ.VendorID, handles.DAQ.DeviceID)};
+end
 
 % Update handles structure
 guidata(hObject, handles);
 
-% UIWAIT makes SoundCalibrationManager wait for user response (see UIRESUME)
-% uiwait(handles.figure1);
+% Execute callback for DAQ Device selection
+popupmenu_DAQ_Device_Callback(handles.popupmenu_DAQ_Device, [], handles);
+
+% Retrieve handles structure
+handles = guidata(hObject);
+
+% Update handles structure
+guidata(hObject, handles);
 
 
 % --- Outputs from this function are returned to the command line.
@@ -83,16 +162,299 @@ function varargout = SoundCalibrationManager_OutputFcn(hObject, eventdata, handl
 % Get default command line output from handles structure
 varargout{1} = handles.output;
 
+
+% --- Executes on selection change in popupmenu_DAQ_Device.
+function popupmenu_DAQ_Device_Callback(hObject, eventdata, handles)
+% hObject    handle to popupmenu_DAQ_Device (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu_DAQ_Device contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from popupmenu_DAQ_Device
+
+% Get selected value from popupmenu
+contents      = cellstr(get(hObject,'String'));
+selectedEntry = get(hObject,'Value');
+selectedItem  = contents{selectedEntry};
+
+% Take the item as a string to get vendor ID and device ID for DAQ device
+parts = strsplit(selectedItem, '-');
+if (length(parts) ~= 2)
+    error('string in popupmenu for DAQ device has an invalid structure!');
+end
+handles.DAQ.VendorID = strtrim(parts{1});
+handles.DAQ.DeviceID = strtrim(parts{2});
+
+% Set values for analog input channel based on selected DAQ device
+if ispc
+    handles.popupmenu_DAQ_Input_Ch.String = handles.DAQDevicesAvailable(selectedEntry).Subsystems(1).ChannelNames;
+else
+    if ( strcmpi(handles.DAQ.VendorID, 'mcc') && strncmpi(handles.DAQ.DeviceID, 'Board', 5) )
+        popupItemsNums = 16;
+        popupItems = cell(1, popupItemsNums);
+        for inputCntr = 1:1:popupItemsNums
+            popupItems{inputCntr} = sprintf('Ai%d', inputCntr-1);
+        end
+        
+        handles.popupmenu_DAQ_Input_Ch.String = popupItems;
+    end
+end
+
+% Update handles structure
+guidata(hObject, handles);
+
+% Invoke callback for input channel selection
+popupmenu_DAQ_Input_Ch_Callback(handles.popupmenu_DAQ_Input_Ch, [], handles);
+
+% Retrieve handles structure
+handles = guidata(hObject);
+
+% Update handles structure
+guidata(hObject, handles);
+
 % --- Executes during object creation, after setting all properties.
-function MaxFreq_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit10 (see GCBO)
+function popupmenu_DAQ_Device_CreateFcn(hObject, eventdata, handles) %#ok<*INUSD,*DEFNU>
+% hObject    handle to popupmenu_DAQ_Device (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
 
+
+% --- Executes on selection change in popupmenu_DAQ_Input_Ch.
+function popupmenu_DAQ_Input_Ch_Callback(hObject, eventdata, handles)
+% hObject    handle to popupmenu_DAQ_Input_Ch (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu_DAQ_Input_Ch contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from popupmenu_DAQ_Input_Ch
+
+% Get selected value from popupmenu
+contents      = cellstr(get(hObject,'String'));
+selectedEntry = get(hObject,'Value');
+selectedItem  = contents{selectedEntry};
+
+% Take the item as a string to get vendor ID and device ID for DAQ device
+handles.DAQ.InputChannel = strtrim(selectedItem);
+
+% Update handles structure
+guidata(hObject, handles);
 
 % --- Executes during object creation, after setting all properties.
-function SoundType_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to SoundType (see GCBO)
+function popupmenu_DAQ_Input_Ch_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to popupmenu_DAQ_Input_Ch (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+function edit_DAQ_Sample_Rate_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_DAQ_Sample_Rate (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% Hints: get(hObject,'String') returns contents of edit_DAQ_Sample_Rate as text_Amp_Condition
+%        str2double(get(hObject,'String')) returns contents of edit_DAQ_Sample_Rate as a double
+
+% Check value
+temp = str2double(strtrim(get(hObject,'String')));
+if (isnan(temp))
+    msgbox('Sample rate must be a numeric value!', 'Wrong format', 'error');
+elseif (temp <= 0)
+    msgbox('Sample rate must be a positive numeric value!', 'Wrong format', 'error');
+end
+
+% --- Executes during object creation, after setting all properties.
+function edit_DAQ_Sample_Rate_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_DAQ_Sample_Rate (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+function edit_DAQ_Range_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_DAQ_Range (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% Hints: get(hObject,'String') returns contents of edit_DAQ_Range as text_Amp_Condition
+%        str2double(get(hObject,'String')) returns contents of edit_DAQ_Range as a double
+
+% Check value
+temp = str2double(strtrim(get(hObject,'String')));
+if (isnan(temp))
+    msgbox('Input range must be a numeric value!', 'Wrong format', 'error');
+elseif (temp <= 0)
+    msgbox('Input range must be a positive numeric value!', 'Wrong format', 'error');
+end
+
+% --- Executes during object creation, after setting all properties.
+function edit_DAQ_Range_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_DAQ_Range (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+function edit_Num_Speakers_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_Num_Speakers (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% Hints: get(hObject,'String') returns contents of edit_Repetitions as text_Amp_Condition
+%        str2double(get(hObject,'String')) returns contents of edit_Repetitions as a double
+
+% Check value
+temp = str2double(strtrim(get(hObject,'String')));
+if (isnan(temp))
+    msgbox('Number of speakers must be a numeric value!', 'Wrong format', 'error');
+elseif ( (temp <= 0) || (mod(temp, 1) ~= 0) )
+    msgbox('Number of speakers must be a positive integer!', 'Wrong format', 'error');
+end
+
+% --- Executes during object creation, after setting all properties.
+function edit_Num_Speakers_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_Num_Speakers (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+function edit_Amplifier_Condition_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_Amplifier_Condition (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% Hints: get(hObject,'String') returns contents of edit_Amplifier_Condition as text_Amp_Condition
+%        str2double(get(hObject,'String')) returns contents of edit_Amplifier_Condition as a double
+
+% Check value
+temp = str2double(strtrim(get(hObject,'String')));
+if (isnan(temp))
+    msgbox('Amplifier condition must be a numeric value!', 'Wrong format', 'error');
+elseif (temp <= 0)
+    msgbox('Amplifier condition must be a positive numeric value!', 'Wrong format', 'error');
+end
+
+% --- Executes during object creation, after setting all properties.
+function edit_Amplifier_Condition_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_Amplifier_Condition (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+function edit_TargetSPL_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_Num_Speakers (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% Hints: get(hObject,'String') returns contents of edit_Repetitions as text_Amp_Condition
+%        str2double(get(hObject,'String')) returns contents of edit_Repetitions as a double
+
+% Check value
+temp = str2double(strtrim(get(hObject,'String')));
+if (isnan(temp))
+    msgbox('Target sound level (dB_SPL) must be a numeric value!', 'Wrong format', 'error');
+elseif (temp <= 0)
+    msgbox('Target sound level (dB_SPL) must be a positive numeric value!', 'Wrong format', 'error');
+end
+
+% --- Executes during object creation, after setting all properties.
+function edit_TargetSPL_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_TargetSPL (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+function edit_Repetitions_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_Repetitions (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% Hints: get(hObject,'String') returns contents of edit_Repetitions as text_Amp_Condition
+%        str2double(get(hObject,'String')) returns contents of edit_Repetitions as a double
+
+% Check value
+temp = str2double(strtrim(get(hObject,'String')));
+if (isnan(temp))
+    msgbox('Number of repetitions must be a numeric value!', 'Wrong format', 'error');
+elseif ( (temp <= 0) || (mod(temp, 1) ~= 0) )
+    msgbox('Number of repetitions must be a postive integer!', 'Wrong format', 'error');
+end
+
+% --- Executes during object creation, after setting all properties.
+function edit_Repetitions_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_Repetitions (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+function edit_Calibration_Points_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_Calibration_Points (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% Hints: get(hObject,'String') returns contents of edit_Repetitions as text_Amp_Condition
+%        str2double(get(hObject,'String')) returns contents of edit_Repetitions as a double
+
+% Check value
+temp = str2double(strtrim(get(hObject,'String')));
+if (isnan(temp))
+    msgbox('Number of calibration points must be a numeric value!', 'Wrong format', 'error');
+elseif ( (temp <= 0) || (mod(temp, 1) ~= 0) )
+    msgbox('Number of calibration must be a postive integer!', 'Wrong format', 'error');
+end
+
+% --- Executes during object creation, after setting all properties.
+function edit_Calibration_Points_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_Calibration_Points (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on selection change in popupmenu_Scaling.
+function popupmenu_Scaling_Callback(hObject, eventdata, handles)
+% hObject    handle to popupmenu_Scaling (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu_Scaling contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from popupmenu_Scaling
+nan;
+
+% --- Executes during object creation, after setting all properties.
+function popupmenu_Scaling_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to popupmenu_Scaling (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -102,252 +464,553 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-% --- Executes during object creation, after setting all properties.
-function TargetSPL_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to TargetSPL (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
 
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-% --- Executes during object creation, after setting all properties.
-function MinBandLimit_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to MinBandLimit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-% --- Executes during object creation, after setting all properties.
-function MaxBandLimit_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to MaxBandLimit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-% --- Executes on button press in calibrate.
-function calibrate_Callback(hObject, eventdata, handles)
-% hObject    handle to calibrate (see GCBO)
+function edit_Start_Frequency_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_Start_Frequency (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-% --- Initialize Sound Server ---
+% Hints: get(hObject,'String') returns contents of edit_Repetitions as text_Amp_Condition
+%        str2double(get(hObject,'String')) returns contents of edit_Repetitions as a double
+
+% Check value
+temp = str2double(strtrim(get(hObject,'String')));
+if (isnan(temp))
+    msgbox('Start frequency must be a numeric value!', 'Wrong format', 'error');
+elseif (temp <= 0)
+    msgbox('Start frequency must be a postive numeric value!', 'Wrong format', 'error');
+end
+
+% --- Executes during object creation, after setting all properties.
+function edit_Start_Frequency_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_Start_Frequency (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+function edit_Stop_Freqeuncy_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_Stop_Freqeuncy (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% Hints: get(hObject,'String') returns contents of edit_Repetitions as text_Amp_Condition
+%        str2double(get(hObject,'String')) returns contents of edit_Repetitions as a double
+
+% Check value
+temp = str2double(strtrim(get(hObject,'String')));
+if (isnan(temp))
+    msgbox('Stop frequency must be a numeric value!', 'Wrong format', 'error');
+elseif (temp <= 0)
+    msgbox('Stop frequency must be a postive numeric value!', 'Wrong format', 'error');
+end
+
+% --- Executes during object creation, after setting all properties.
+function edit_Stop_Freqeuncy_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_Stop_Freqeuncy (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+function edit_Bandwidth_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_Bandwidth (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% Hints: get(hObject,'String') returns contents of edit_Bandwidth as text
+%        str2double(get(hObject,'String')) returns contents of edit_Bandwidth as a double
+
+% Check value
+temp = str2double(strtrim(get(hObject,'String')));
+if (isnan(temp))
+    msgbox('Bandwidth must be a numeric value!', 'Wrong format', 'error');
+elseif (temp <= 0)
+    msgbox('Bandwidth must be a postive numeric value!', 'Wrong format', 'error');
+end
+
+% --- Executes during object creation, after setting all properties.
+function edit_Bandwidth_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_Bandwidth (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+function edit_BandLimit_Min_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_BandLimit_Min (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% Hints: get(hObject,'String') returns contents of edit_Repetitions as text_Amp_Condition
+%        str2double(get(hObject,'String')) returns contents of edit_Repetitions as a double
+
+% Check value
+temp = str2double(strtrim(get(hObject,'String')));
+if (isnan(temp))
+    msgbox('Min. band limit coefficient must be a numeric value!', 'Wrong format', 'error');
+elseif (temp <= 0)
+    msgbox('Min. band limit coefficient must be a positive numeric value!', 'Wrong format', 'error');
+end
+
+% --- Executes during object creation, after setting all properties.
+function edit_BandLimit_Min_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_BandLimit_Min (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+function edit_BandLimit_Max_Callback(hObject, eventdata, handles)
+% hObject    handle to edit_BandLimit_Max (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% Hints: get(hObject,'String') returns contents of edit_Repetitions as text_Amp_Condition
+%        str2double(get(hObject,'String')) returns contents of edit_Repetitions as a double
+
+% Check value
+temp = str2double(strtrim(get(hObject,'String')));
+if (isnan(temp))
+    msgbox('Max. band limit coefficient must be a numeric value!', 'Wrong format', 'error');
+elseif (temp <= 0)
+    msgbox('Max. band limit coefficient must be a positive numeric value!', 'Wrong format', 'error');
+end
+
+% --- Executes during object creation, after setting all properties.
+function edit_BandLimit_Max_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to edit_BandLimit_Max (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in pushbutton_Calibrate.
+function pushbutton_Calibrate_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_Calibrate (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
 global BpodSystem
 BpodSystem.PluginObjects.SoundCal = struct;
 BpodSystem.PluginObjects.SoundCal.Abort = 0;
-C = colormap;
-%Get Calibration Parameters
-TargetSPL = str2double(get(handles.TargetSPL,'String'));
-MinFreq = str2double(get(handles.MinFreq,'String'));
-MaxFreq = str2double(get(handles.MaxFreq,'String'));
-nFreq = str2double(get(handles.nFreq,'String'));
-nSpeakers = str2double(get(handles.nSpeakers,'String'));
-nRepeats = str2double(get(handles.edit11,'String'));
 
-MinBandLimit = str2double(get(handles.MinBandLimit,'String'));
-MaxBandLimit = str2double(get(handles.MaxBandLimit,'String'));
+% Create a colormap
+colors = colormap;
 
-FrequencyVector =  logspace(log10(MinFreq),log10(MaxFreq),nFreq);
+% Get calibration parameters
+% --------------------------------------------------------------------------
+handles.DAQ.SamplingRate      = str2double(get(handles.edit_DAQ_Sample_Rate, 'String'));
+handles.DAQ.Range             = str2double(get(handles.edit_DAQ_Range, 'String'));
+handles.SoundCal.numSpeakers  = str2double(get(handles.edit_Num_Speakers, 'String'));
+handles.SoundCal.ampCondition = str2double(get(handles.edit_Amplifier_Condition, 'String'));
+handles.SoundCal.targetSPL    = str2double(get(handles.edit_TargetSPL, 'String'));
+handles.SoundCal.numRepeats   = str2double(get(handles.edit_Repetitions, 'String'));
+handles.SoundCal.numFreqs     = str2double(get(handles.edit_Calibration_Points, 'String'));
+handles.SoundCal.startFreq    = str2double(get(handles.edit_Start_Frequency, 'String'));
+handles.SoundCal.stopFreq     = str2double(get(handles.edit_Stop_Freqeuncy, 'String'));
+handles.SoundCal.bandwidth    = str2double(get(handles.edit_Bandwidth, 'String'));
+% --------------------------------------------------------------------------
+% Check input values - Start
+% --------------------------------------------------------------------------
+if (isnan(handles.DAQ.Range))
+    msgbox('Input range must be a numeric value!', 'Wrong format', 'error');
+    return;
+elseif (handles.DAQ.Range <= 0)
+    msgbox('Input range must be a positive numeric value!', 'Wrong format', 'error');
+    return;
+end
 
-PsychToolboxSoundServer('init')
+if (isnan(handles.SoundCal.numSpeakers))
+    msgbox('Number of speakers must be a numeric value!', 'Wrong format', 'error');
+    return;
+elseif ( (handles.SoundCal.numSpeakers <= 0) || (mod(handles.SoundCal.numSpeakers, 1) ~= 0) )
+    msgbox('Number of speakers must be a positive integer!', 'Wrong format', 'error');
+    return;
+end
 
-OutputFileName = ['SoundCalibration'];
-[FileName,PathName] = uiputfile('.mat','Save Sound Calibration File',OutputFileName);
+if (isnan(handles.SoundCal.ampCondition))
+    msgbox('Amplifier condition must be a numeric value!', 'Wrong format', 'error');
+    return;
+elseif (handles.SoundCal.ampCondition <= 0)
+    msgbox('Amplifier condition must be a positive numeric value!', 'Wrong format', 'error');
+    return;
+end
 
-handles.filename = fullfile(PathName,FileName);
+if (isnan(handles.SoundCal.targetSPL))
+    msgbox('Target sound level (dB_SPL) must be a numeric value!', 'Wrong format', 'error');
+    return;
+elseif (handles.SoundCal.targetSPL <= 0)
+    msgbox('Target sound level (dB_SPL) must be a positive numeric value!', 'Wrong format', 'error');
+    return;
+end
 
-AttenuationVector = zeros(nFreq,nSpeakers,nRepeats);
+if (isnan(handles.SoundCal.numRepeats))
+    msgbox('Number of repetitions must be a numeric value!', 'Wrong format', 'error');
+    return;
+elseif ( (handles.SoundCal.numRepeats <= 0) || (mod(handles.SoundCal.numRepeats, 1) ~= 0) )
+    msgbox('Number of repetitions must be a postive integer!', 'Wrong format', 'error');
+    return;
+end
+
+if (isnan(handles.SoundCal.numFreqs))
+    msgbox('Number of calibration points must be a numeric value!', 'Wrong format', 'error');
+    return;
+elseif ( (handles.SoundCal.numFreqs <= 0) || (mod(handles.SoundCal.numFreqs, 1) ~= 0) )
+    msgbox('Number of calibration must be a postive integer!', 'Wrong format', 'error');
+    return;
+end
+
+if (isnan(handles.SoundCal.startFreq))
+    msgbox('Start frequency must be a numeric value!', 'Wrong format', 'error');
+    return;
+elseif (handles.SoundCal.startFreq <= 0)
+    msgbox('Start frequency must be a postive numeric value!', 'Wrong format', 'error');
+    return;
+end
+
+if (isnan(handles.SoundCal.stopFreq))
+    msgbox('Stop frequency must be a numeric value!', 'Wrong format', 'error');
+    return;
+elseif (handles.SoundCal.stopFreq <= 0)
+    msgbox('Stop frequency must be a postive numeric value!', 'Wrong format', 'error');
+    return;
+end
+
+if (isnan(handles.SoundCal.bandwidth))
+    msgbox('Bandwidth must be a numeric value!', 'Wrong format', 'error');
+    return;
+elseif (handles.SoundCal.bandwidth <= 0)
+    msgbox('Bandwidth must be a positive numeric value!', 'Wrong format', 'error');
+    return;
+end
+
+if (isnan(handles.DAQ.SamplingRate))
+    msgbox('DAQ sampling rate must be a numeric value!', 'Wrong format', 'error');
+    return;
+elseif (handles.DAQ.SamplingRate <= 0)
+    msgbox('DAQ sampling rate must be a positive numeric value!', 'Wrong format', 'error');
+    return;
+elseif (handles.DAQ.SamplingRate > 200)
+    msgbox('DAQ sampling rates greater than 200 kHz are not supported!', 'Unsupported value', 'error');
+    return;
+elseif ( (handles.DAQ.SamplingRate*1000) < (2 * handles.SoundCal.stopFreq) )
+    msgbox('DAQ sampling rate must be greater than at least 2 * stop frequency!', 'Unsupported value', 'error');
+    return;
+end
+% --------------------------------------------------------------------------
+% Check input values - End
+% --------------------------------------------------------------------------
+
+% Convert Sampling Rate from kHz to Hz
+handles.DAQ.SamplingRate = 1000 * handles.DAQ.SamplingRate;
+
+% Specify calibration file
+% ------------------------
+OutputFileName = 'SoundCalibration';
+[FileName, PathName] = uiputfile('.mat', 'Save Sound Calibration File', OutputFileName);
+% Check if user clicked on cancel button
+if ( (isnumeric(FileName) & (FileName == 0)) | (isnumeric(PathName) & (PathName == 0)) ) %#ok<OR2,AND2>
+    disp('Canceled by user');
+    return;
+end
+% Set full filename into handles structure
+handles.filename = fullfile(PathName, FileName);
+
+% Reset attenuation plot
+% ----------------------
+set(handles.ax_Attenuation, 'Visible', 'on');
+cla(handles.ax_Attenuation);
+hold(handles.ax_Attenuation, 'on');
+grid(handles.ax_Attenuation, 'on');
+title(handles.ax_Attenuation, 'Attenuation Factor');
+ylabel(handles.ax_Attenuation, 'Attenuation Factor');
+xlabel(handles.ax_Attenuation, 'Frequency (kHz)')
+axis(handles.ax_Attenuation, [handles.SoundCal.startFreq/1000 handles.SoundCal.stopFreq/1000 0 1])
+
+% Reset attenuation dB_SPL plot
+% -----------------------------
+set(handles.ax_Attenuation_dB, 'Visible', 'on');
+cla(handles.ax_Attenuation_dB);
+hold(handles.ax_Attenuation_dB, 'on');
+grid(handles.ax_Attenuation_dB, 'on');
+title(handles.ax_Attenuation_dB, 'Sound Pressure Level');
+ylabel(handles.ax_Attenuation_dB, 'Sound Pressure (dB_{SPL})')
+xlabel(handles.ax_Attenuation_dB, 'Frequency (kHz)')
+axis(handles.ax_Attenuation_dB, [handles.SoundCal.startFreq/1000 handles.SoundCal.stopFreq/1000 0 120])
+set(handles.ax_Attenuation_dB, 'XScale', 'log')
+legend(handles.ax_Attenuation_dB, 'off')
+
+% Create frequency vector
+% -----------------------
+% Get value for scaling
+tempContents = cellstr(get(handles.popupmenu_Scaling, 'String'));
+handles.SoundCal.scaling = tempContents{get(handles.popupmenu_Scaling, 'Value')};
+clear tempContents
+
+if strcmp(strtrim(handles.SoundCal.scaling), 'linear')
+    frequencies = linspace(handles.SoundCal.startFreq, ...
+                           handles.SoundCal.stopFreq, ...
+                           handles.SoundCal.numFreqs);
+    
+elseif strcmp(strtrim(handles.SoundCal.scaling), 'logarithmic')
+    frequencies = logspace(log10(handles.SoundCal.startFreq), ...
+                           log10(handles.SoundCal.stopFreq), ...
+                           handles.SoundCal.numFreqs);
+    
+else
+    tempMsg = sprintf('Unsupported value ''%s'' for frequency scaling', handles.SoundCal.scaling);
+    msgbox(tempMsg, 'Unsupported value', 'error');
+    clear tempMsg;
+    return;
+    
+end
+
+% Initialize the attenuation vector for the results
+AttenuationVector = zeros(handles.SoundCal.numFreqs,...
+                          handles.SoundCal.numSpeakers,...
+                          handles.SoundCal.numRepeats);
+                      
+PowerVector = zeros(handles.SoundCal.numFreqs,...
+                    handles.SoundCal.numSpeakers,...
+                    handles.SoundCal.numRepeats);
+                
+InitialPowerVector = zeros(handles.SoundCal.numFreqs,...
+                           handles.SoundCal.numSpeakers,...
+                           handles.SoundCal.numRepeats);
+
+% Create string array for legend dB plot
+legendString_dB = cell(1, handles.SoundCal.numSpeakers);
+
+% Define a struct for passing values to other methods
 SoundCal = struct;
 
-for inds=1:nSpeakers            % --   Loop through speakers  --
+% (Re-)Initialize PsychToolbox PortAudio
+PsychToolboxSoundServer('init')
+
+% Setup daq device in case this code is being executed on a Windows system
+if ispc
+    % Create DAQ session
+    handles.DAQ.Session = daq.createSession(handles.DAQ.VendorID);
     
-    switch inds
+    % Set DAQ sampling rate
+    handles.DAQ.Session.Rate = handles.DAQ.SamplingRate;
+    
+    % Set DAQ recording duration
+    handles.DAQ.Session.DurationInSeconds = handles.SoundCal.timeToRecord;
+    
+    % Attach input channel to DAQ session
+    handles.DAQ.ChIn = addAnalogInputChannel(handles.DAQ.Session, handles.DAQ.DeviceID, handles.DAQ.InputChannel, 'Voltage');
+    
+    % Set input range of input channel
+    handles.DAQ.ChIn.Range   = [-handles.DAQ.Range handles.DAQ.Range];
+else
+    if (~strncmpi(handles.DAQ.VendorID, 'mcc', 3))
+        errorStr = sprintf('Unsupported DAQ device for non-Windows operating systems! Vendor: %s', handles.DAQ.VendorID);
+        msgbox(errorStr, 'Unsupported DAQ device', 'error');
+        return;
+    end
+end
+
+% Loop through all speakers
+for currSpeaker=1:handles.SoundCal.numSpeakers
+    % Set symbols for speaker for plotting attenuation
+    switch currSpeaker
         case 1
-            symb = 'o';
+            speakerSymbol = 'o';
         case 2
-            symb = 'x';
+            speakerSymbol = 'x';
     end
     
-    uiwait(msgbox({[' Calibrating speaker ' num2str(inds) '.'],' Position microphone and press OK to continue...'},'Sound Calibration','modal'));
+    % Let user know to place the microphone
+    uiwait(msgbox({['Calibrating speaker ' num2str(currSpeaker) '.'], 'Position microphone and press OK to continue...'}, 'Sound Calibration', 'modal'));
+    
+    
+    handles.SoundCal.currSpeaker = currSpeaker;
+    
+    for currRep=1:handles.SoundCal.numRepeats
         
-
-    Sound.Speaker = inds;
-   
-        for rep=1:nRepeats
-                
-            if rep>1
-                uiwait(msgbox('Reposition mic for next repetition and press OK','Sound Calibration','modal'));
-            end
-            
-            for indf=1:nFreq            % -- Loop through frequencies --
-                
-                Sound.Frequency = FrequencyVector(indf);
-                BandLimits = Sound.Frequency * [MinBandLimit MaxBandLimit];
-            
-                AttenuationVector(indf, inds,rep) = find_amplitude(Sound,TargetSPL,BandLimits,handles);
-                if AttenuationVector(indf, inds,rep) == 1
-                     errordlg('ERROR: The sound recorded was not loud enough to calibrate. Please manually increase the speaker volume and restart.');
-                     return;
-                end
-                axes(handles.attFig);
-                hold on
-                semilogx(FrequencyVector(1:indf)/1000,AttenuationVector(1:indf,inds,rep),[symb '-'],'Color',C(floor(64/nSpeakers/nRepeats)*(rep-1)+floor(64/nSpeakers)*(inds-1)+1,:));
-                New_XTickLabel = get(gca,'xtick');
-                set(gca,'XTickLabel',New_XTickLabel);
-                grid on;
-                ylabel('Attenuation (dB)');
-                xlabel('Frequency (kHz)')
-                axis([MinFreq/1000 MaxFreq/1000 0 1])
-            end
+        if currRep>1
+            uiwait(msgbox('Reposition microphone for next repetition and press OK', 'Sound Calibration', 'modal'));
         end
         
-        semilogx(FrequencyVector(1:indf)/1000,mean(AttenuationVector(:,inds,:),3),'-','Color',C(floor(64/nSpeakers)*(inds-1)+1,:),'linewidth',1.5);
+        % Loop through frequencies
+        for freqCntr=1:handles.SoundCal.numFreqs           
+            % Get current frequency
+            handles.SoundCal.currFrequency = frequencies(freqCntr);
+            
+            % Set the amplitude for first iteration
+            handles.SoundCal.currAmplitude = handles.SoundCal.initialAmplitude;
+            
+            % Set dB level to 0 dB_SPL
+            bandPower_dBSPL = 0;
+            
+            % Estimate attenuation
+            for currIteration = 1:1:handles.SoundCal.maxInterations
+                if BpodSystem.PluginObjects.SoundCal.Abort
+                    % User aborted calibration
+                    
+                    % Delete handle to DAQ session
+                    delete(handles.DAQ.Session);
+                    
+                    % Output a warning...
+                    tempMsg = ('Calibration manually aborted.');
+                    msgbox(tempMsg, 'Calibration aborted', 'warn');
+                    
+                    return;
+                end
+                
+                % Calculate dB_SPL for given amplitude
+                bandPower_dBSPL = ResponsePureTone(handles);
+                
+                if (currIteration == 1)
+                    InitialPowerVector(freqCntr, currSpeaker, currRep) = bandPower_dBSPL;
+                end
+                
+                % Update text fields
+                set(handles.text_ResultsFreqValue,  'String', num2str(handles.SoundCal.currFrequency));
+                set(handles.text_ResultsAttnValue,  'String', num2str(handles.SoundCal.currAmplitude));
+                set(handles.text_ResultsPowerValue, 'String', num2str(bandPower_dBSPL));
+                
+                % Calculate difference between current output and target output
+                diff_dBSPL = bandPower_dBSPL - handles.SoundCal.targetSPL;
+                
+                if ( abs(diff_dBSPL) < handles.SoundCal.acceptableTolerance_dBSPL )
+                    break;
+                    
+                elseif ( currIteration < handles.SoundCal.maxInterations )
+                    AmpFactor = 10^(diff_dBSPL/20);
+                    handles.SoundCal.currAmplitude = handles.SoundCal.currAmplitude/AmpFactor;
+                    
+                    % If it cannot find the right level, set 1
+                    if (handles.SoundCal.currAmplitude > 1)
+                        handles.SoundCal.currAmplitude = 1;
+                    end
+                end
+            end
+            
+            % Store values in results vector
+            AttenuationVector(freqCntr, currSpeaker, currRep) = handles.SoundCal.currAmplitude;
+            PowerVector(freqCntr, currSpeaker, currRep) = bandPower_dBSPL;
+            
+            if (handles.SoundCal.currAmplitude == 1)
+                msgbox('The sound recorded was not loud enough to calibrate. Please manually increase the speaker volume and restart.', ...
+                       'Sound pressure too low', 'error');
+                
+                % If this code is being executed on a Windows system, we should 
+                % close the DAQ session...
+                if ispc
+                    delete(handles.DAQ.Session);
+                end
+                
+                return;
+            end
+            
+            % Plot attenuation value
+            semilogx(handles.ax_Attenuation, ...
+                     frequencies(1:freqCntr)/1000, ...
+                     AttenuationVector(1:freqCntr, currSpeaker, currRep), ...
+                     [speakerSymbol '-'], ...
+                     'Color', colors(floor(64/handles.SoundCal.numSpeakers/handles.SoundCal.numRepeats)*(currRep-1)+floor(64/handles.SoundCal.numSpeakers)*(currSpeaker-1)+1,:));
+            New_XTickLabel = get(handles.ax_Attenuation, 'xtick');
+            set(handles.ax_Attenuation, 'XTickLabel', New_XTickLabel);
+        end
+    end
     
-    SoundCal(1,inds).Table = [FrequencyVector' mean(AttenuationVector(:,inds,:),3)];
-    SoundCal(1,inds).CalibrationTargetRange = [MinFreq MaxFreq];
-    SoundCal(1,inds).TargetSPL = TargetSPL;
-    SoundCal(1,inds).LastDateModified = date;
-    SoundCal(1,inds).Coefficient = polyfit(FrequencyVector',mean(AttenuationVector(:,inds),3),1);
-
+    % Plot the values for the attenuations...
+    semilogx(handles.ax_Attenuation, ...
+             frequencies/1000, ...
+             mean(AttenuationVector(:,currSpeaker,:),3), ...
+             '-', 'Color', ...
+             colors(floor(64/handles.SoundCal.numSpeakers)*(currSpeaker-1)+1,:), ...
+             'linewidth',1.5);
     drawnow;
+    
+    % Set the color values for the dB values
+    if (currSpeaker == 1)
+        dB_color = 'k';
+        legendString_dB{1,1} = 'Speaker 1 initial SPL';
+        legendString_dB{1,2} = 'Speaker 1 calibrated SPL';
+        speakerSymbol = 'o';
+    elseif (currSpeaker == 2)
+        dB_color = 'r';
+        legendString_dB{1,3} = 'Speaker 2 initial SPL';
+        legendString_dB{1,4} = 'Speaker 2 calibrated SPL';
+        speakerSymbol = 'x';
+    end
+    
+    semilogx(handles.ax_Attenuation_dB, ...
+             frequencies/1000, ...
+             mean(InitialPowerVector(:, currSpeaker, :),3), ...
+             '-', 'Color', dB_color, 'linewidth',1);
+    
+    semilogx(handles.ax_Attenuation_dB, ...
+             frequencies/1000, ...
+             mean(PowerVector(:, currSpeaker, :),3), ...
+             speakerSymbol, 'Color', dB_color, 'linewidth',1);
+    drawnow;
+    
+    %axis(handles.ax_Attenuation_dB, [handles.SoundCal.startFreq/1000 handles.SoundCal.stopFreq/1000 0 120])
+    
+    
+    legend(handles.ax_Attenuation_dB, legendString_dB);
+    legend(handles.ax_Attenuation_dB, 'Location', 'southeast')
+    
+    % Store calibration data in struct
+    SoundCal(1,currSpeaker).Table                  = [frequencies' mean(AttenuationVector(:,currSpeaker,:),3)];
+    SoundCal(1,currSpeaker).CalibrationTargetRange = [handles.SoundCal.startFreq handles.SoundCal.stopFreq];
+    SoundCal(1,currSpeaker).TargetSPL              = handles.SoundCal.targetSPL;
+    SoundCal(1,currSpeaker).LastDateModified       = date;
+    %SoundCal(1,currSpeaker).Coefficient            = polyfit(frequencies',mean(AttenuationVector(:,currSpeaker,:),3),1);
+    SoundCal(1,currSpeaker).Coefficient            = pchip(frequencies',mean(AttenuationVector(:,currSpeaker,:),3));
+    SoundCal(1,currSpeaker).InitialRespose         = [frequencies' mean(InitialPowerVector(:, currSpeaker, :),3)];
+    SoundCal(1,currSpeaker).CalibratedRespose      = [frequencies' mean(PowerVector(:, currSpeaker, :),3)];
+    SoundCal(1,currSpeaker).FitMethod              = 'pchip';
+    SoundCal(1,currSpeaker).EvaluationMethod       = 'ppval';
 end
 
-% -- Saving results --
-save(fullfile(PathName,FileName),'SoundCal');
-    
+% Save sound calibration file
+save(fullfile(PathName, FileName), 'SoundCal');
+
+% Let user know that calibration file was created
 uiwait(msgbox({'The Sound Calibration file has been saved in: ', fullfile(PathName,FileName)},'Sound Calibration','modal'));
-    
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
 
-% --- Executes during object creation, after setting all properties.
-function MinFreq_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to MinFreq (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-% --- Executes during object creation, after setting all properties.
-function nFreq_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to nFreq (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-% --- Executes during object creation, after setting all properties.
-function nSpeakers_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to nSpeakers (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-% --- Executes during object creation, after setting all properties.
-function edit8_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to MaxBandLimit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-% --- Executes during object creation, after setting all properties.
-function edit9_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to MinBandLimit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-% --- Executes during object creation, after setting all properties.
-function edit10_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit10 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
+% If this code is being executed on a Windows system, we should close the DAQ
+% session...
+if ispc
+    delete(handles.DAQ.Session);
 end
 
 
-% --- Executes on button press in test_btn.
-function test_btn_Callback(hObject, eventdata, handles)
-% hObject    handle to test_btn (see GCBO)
+% --- Executes on button press in pushbutton_Abort.
+function pushbutton_Abort_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_Abort (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-TestSoundManager(handles.filename)
 
-% --- Executes on button press in pause_btn.
-function pause_btn_Callback(hObject, eventdata, handles)
-% hObject    handle to test_btn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 global BpodSystem
 BpodSystem.PluginObjects.SoundCal.Abort = 1;
 
-% --- Executes on button press in test_btn.
-function nFreq_Callback(hObject, eventdata, handles)
-% hObject    handle to test_btn (see GCBO)
+
+% --- Executes on button press in pushbutton_Test.
+function pushbutton_Test_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_Test (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-
-
-function edit11_Callback(hObject, eventdata, handles)
-% hObject    handle to edit11 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of edit11 as text
-%        str2double(get(hObject,'String')) returns contents of edit11 as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function edit11_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit11 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
+TestSoundManager(handles.filename)
