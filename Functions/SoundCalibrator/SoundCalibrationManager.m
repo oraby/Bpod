@@ -23,7 +23,7 @@ function varargout = SoundCalibrationManager(varargin)
 
 % Edit the above text_Amp_Condition to modify the response to help SoundCalibrationManager
 
-% Last Modified by GUIDE v2.5 06-Nov-2019 09:44:59
+% Last Modified by GUIDE v2.5 14-Nov-2019 12:16:25
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -71,19 +71,19 @@ handles.DAQ.InputChannel    = [];
 handles.DAQ.SamplingRate    = [];
 handles.DAQ.Range           = [];
 
-handles.SoundCal.numSpeakers  = 0;
-handles.SoundCal.ampCondition = 0;
-handles.SoundCal.targetSPL    = 0;
-handles.SoundCal.numRepeats   = 0;
-handles.SoundCal.numFreqs     = 0;
-handles.SoundCal.scaling      = [];
-handles.SoundCal.startFreq    = 0;
-handles.SoundCal.stopFreq     = 0;
-handles.SoundCal.bandwidth    = 0;
+handles.SoundCal.speakerSelection = [];
+handles.SoundCal.ampCondition     = 0;
+handles.SoundCal.targetSPL        = 0;
+handles.SoundCal.numRepeats       = 0;
+handles.SoundCal.numFreqs         = 0;
+handles.SoundCal.scaling          = [];
+handles.SoundCal.startFreq        = 0;
+handles.SoundCal.stopFreq         = 0;
+handles.SoundCal.bandwidth        = 0;
 
-handles.SoundCal.currSpeaker   = 0;
-handles.SoundCal.currFrequency = 0;
-handles.SoundCal.currAmplitude = 0;
+handles.SoundCal.currSpeakerName = 0;
+handles.SoundCal.currFrequency   = 0;
+handles.SoundCal.currAmplitude   = 0;
 
 handles.SoundCal.toneDuration              = 1;      % Duration of playback
 handles.SoundCal.timeToRecord              = 0.5;    % Duration of recording
@@ -92,10 +92,15 @@ handles.SoundCal.samplingFrequncy          = 192000; % Sampling rate of sound ca
 handles.SoundCal.PSDWindowLength           = 2^16;   % Window length for PSD estimate
 handles.SoundCal.initialAmplitude          = 0.2;    % Initial Amplitude 
 handles.SoundCal.acceptableTolerance_dBSPL = 0.5;    % Max. tolerable difference
-handles.SoundCal.maxInterations            = 10;     % Max. number of iterations per frequency
+handles.SoundCal.maxInterations            = 15;     % Max. number of iterations per frequency
 handles.SoundCal.pressureReference         = 20e-6;  % Pressure reference p0 in Pascal (Pa)
 
 handles.filename = [];
+handles.startedBefore = 0;
+
+% Set values for speaker selection
+handles.SoundCal.speakerSelectionStrings = {'Channel 1 (left)', 'Channel 2 (right)', 'Both - independent', 'Both - joined'};
+set(handles.popupmenu_Speaker,'String', handles.SoundCal.speakerSelectionStrings );
 
 % Create text label for physical unit of edit_TargetSPL (dB_SPL)
 handles.dB_SPL_label= javaObjectEDT('javax.swing.JLabel','<HTML><font face="arial" size="4">dB<sub>SPL</sub></font></HTML>');
@@ -308,27 +313,21 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-function edit_Num_Speakers_Callback(hObject, eventdata, handles)
-% hObject    handle to edit_Num_Speakers (see GCBO)
+% --- Executes on selection change in popupmenu_Speaker.
+function popupmenu_Speaker_Callback(hObject, eventdata, handles)
+% hObject    handle to popupmenu_Speaker (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-% Hints: get(hObject,'String') returns contents of edit_Repetitions as text_Amp_Condition
-%        str2double(get(hObject,'String')) returns contents of edit_Repetitions as a double
-
-% Check value
-temp = str2double(strtrim(get(hObject,'String')));
-if (isnan(temp))
-    msgbox('Number of speakers must be a numeric value!', 'Wrong format', 'error');
-elseif ( (temp <= 0) || (mod(temp, 1) ~= 0) )
-    msgbox('Number of speakers must be a positive integer!', 'Wrong format', 'error');
-end
+% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu_Speaker contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from popupmenu_Speaker
 
 % --- Executes during object creation, after setting all properties.
-function edit_Num_Speakers_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to edit_Num_Speakers (see GCBO)
+function popupmenu_Speaker_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to popupmenu_Speaker (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
-% Hint: edit controls usually have a white background on Windows.
+
+% Hint: popupmenu controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
@@ -618,7 +617,6 @@ colors = colormap;
 % --------------------------------------------------------------------------
 handles.DAQ.SamplingRate      = str2double(get(handles.edit_DAQ_Sample_Rate, 'String'));
 handles.DAQ.Range             = str2double(get(handles.edit_DAQ_Range, 'String'));
-handles.SoundCal.numSpeakers  = str2double(get(handles.edit_Num_Speakers, 'String'));
 handles.SoundCal.ampCondition = str2double(get(handles.edit_Amplifier_Condition, 'String'));
 handles.SoundCal.targetSPL    = str2double(get(handles.edit_TargetSPL, 'String'));
 handles.SoundCal.numRepeats   = str2double(get(handles.edit_Repetitions, 'String'));
@@ -634,14 +632,6 @@ if (isnan(handles.DAQ.Range))
     return;
 elseif (handles.DAQ.Range <= 0)
     msgbox('Input range must be a positive numeric value!', 'Wrong format', 'error');
-    return;
-end
-
-if (isnan(handles.SoundCal.numSpeakers))
-    msgbox('Number of speakers must be a numeric value!', 'Wrong format', 'error');
-    return;
-elseif ( (handles.SoundCal.numSpeakers <= 0) || (mod(handles.SoundCal.numSpeakers, 1) ~= 0) )
-    msgbox('Number of speakers must be a positive integer!', 'Wrong format', 'error');
     return;
 end
 
@@ -714,12 +704,15 @@ elseif ( (handles.DAQ.SamplingRate*1000) < (2 * handles.SoundCal.stopFreq) )
     msgbox('DAQ sampling rate must be greater than at least 2 * stop frequency!', 'Unsupported value', 'error');
     return;
 end
-% --------------------------------------------------------------------------
-% Check input values - End
-% --------------------------------------------------------------------------
 
 % Convert Sampling Rate from kHz to Hz
 handles.DAQ.SamplingRate = 1000 * handles.DAQ.SamplingRate;
+
+% Get value from sepeaker selection
+handles.SoundCal.speakerSelection = handles.SoundCal.speakerSelectionStrings{get(handles.popupmenu_Speaker,'Value')};
+% --------------------------------------------------------------------------
+% Check input values - End
+% --------------------------------------------------------------------------
 
 % Specify calibration file
 % ------------------------
@@ -732,6 +725,21 @@ if ( (isnumeric(FileName) & (FileName == 0)) | (isnumeric(PathName) & (PathName 
 end
 % Set full filename into handles structure
 handles.filename = fullfile(PathName, FileName);
+
+% Give out a notification that the user should make sure that the
+% calibration setup is connected and turned on. Depending on the sound
+% geerating setup (amplifier and speaker etc.) it could be possible to
+% destroy the speakers in case the acquisition system is not measuring
+% anything. The soundcard's output would go to maximum (1 V peak amplitude)
+% and that could destroy especially high frequency tweeters when the
+% calibration should be performed for low frequencies.
+if (handles.startedBefore == 0)
+    tempDaq = sprintf('%s - %s, Input: %s', handles.DAQ.VendorID, handles.DAQ.DeviceID, handles.DAQ.InputChannel);
+    msg = sprintf('Before starting the calibration, make sure the acquisition system (conditioned amplifier and data acquisition interface) is turned on!');
+    msg = sprintf('%s If the data acquisition system (%s) is not able to measure correctly, the soundcard would output a signal with a peak voltage of 1 V that could cause harm to the speakers!', msg, tempDaq);
+    uiwait(msgbox(msg, 'Check setup', 'warn', 'modal'));
+end
+handles.startedBefore = 1;
 
 % Reset attenuation plot
 % ----------------------
@@ -782,22 +790,6 @@ else
     
 end
 
-% Initialize the attenuation vector for the results
-AttenuationVector = zeros(handles.SoundCal.numFreqs,...
-                          handles.SoundCal.numSpeakers,...
-                          handles.SoundCal.numRepeats);
-                      
-PowerVector = zeros(handles.SoundCal.numFreqs,...
-                    handles.SoundCal.numSpeakers,...
-                    handles.SoundCal.numRepeats);
-                
-InitialPowerVector = zeros(handles.SoundCal.numFreqs,...
-                           handles.SoundCal.numSpeakers,...
-                           handles.SoundCal.numRepeats);
-
-% Create string array for legend dB plot
-legendString_dB = cell(1, handles.SoundCal.numSpeakers);
-
 % Define a struct for passing values to other methods
 SoundCal = struct;
 
@@ -828,21 +820,106 @@ else
     end
 end
 
-% Loop through all speakers
-for currSpeaker=1:handles.SoundCal.numSpeakers
+% Get value from sepeaker selection
+if strcmpi(handles.SoundCal.speakerSelection, 'Channel 1 (left)')
+    speakerCount = 1;
+    handles.SoundCal.currSpeakerName = 'left';
+    
+    % For compatibility reasons, we have to keep this value. 
+    % This value will initialize the size of the resulting atenuation vector
+    % etc. If the have just one column, it will be interpreted as just
+    % calibrated for channel 1 (left). If the results will have two columns, it
+    % will be interpreted as both channels were calibrated... Why not defining
+    % another value on how to interprete the data!?!
+    handles.SoundCal.numSpeakers = 1;
+    
+elseif strcmpi(handles.SoundCal.speakerSelection, 'Channel 2 (right)')
+    speakerCount = 1;
+    handles.SoundCal.currSpeakerName = 'right';
+    
+    % For compatibility reasons, we have to keep this value. 
+    % This value will initialize the size of the resulting atenuation vector
+    % etc. If the have just one column, it will be interpreted as just
+    % calibrated for channel 1 (left). If the results will have two columns, it
+    % will be interpreted as both channels were calibrated... Why not defining
+    % another value on how to interprete the data!?!
+    handles.SoundCal.numSpeakers = 2;
+    
+elseif strcmpi(handles.SoundCal.speakerSelection, 'Both - independent')
+    speakerCount = 2;
+    
+    % For compatibility reasons, we have to keep this value. 
+    % This value will initialize the size of the resulting atenuation vector
+    % etc. If the have just one column, it will be interpreted as just
+    % calibrated for channel 1 (left). If the results will have two columns, it
+    % will be interpreted as both channels were calibrated... Why not defining
+    % another value on how to interprete the data!?!
+    handles.SoundCal.numSpeakers = 2;
+    
+elseif strcmpi(handles.SoundCal.speakerSelection, 'Both - joined')
+    speakerCount = 1;
+    handles.SoundCal.currSpeakerName = 'both';
+    
+    % For compatibility reasons, we have to keep this value. 
+    % This value will initialize the size of the resulting atenuation vector
+    % etc. If the have just one column, it will be interpreted as just
+    % calibrated for channel 1 (left). If the results will have two columns, it
+    % will be interpreted as both channels were calibrated... Why not defining
+    % another value on how to interprete the data!?!
+    handles.SoundCal.numSpeakers = 2;
+    
+else
+    errorStr = sprintf('Unknown speaker selection: %s!', handles.SoundCal.speakerSelection);
+    msgbox(errorStr, 'Uknown speaker selection', 'error');
+    return;
+end
+
+% Create string array for legend dB plot
+legendString_dB = cell(1, speakerCount);
+
+% Initialize the attenuation vector for the results
+AttenuationVector = zeros(handles.SoundCal.numFreqs,...
+                          handles.SoundCal.numSpeakers,...
+                          handles.SoundCal.numRepeats);
+                      
+PowerVector = zeros(handles.SoundCal.numFreqs,...
+                    handles.SoundCal.numSpeakers,...
+                    handles.SoundCal.numRepeats);
+                
+InitialPowerVector = zeros(handles.SoundCal.numFreqs,...
+                           handles.SoundCal.numSpeakers,...
+                           handles.SoundCal.numRepeats);
+
+
+% Loop through selected speakers
+for currSpeaker=1:speakerCount
     % Set symbols for speaker for plotting attenuation
-    switch currSpeaker
-        case 1
+    
+    if ( (speakerCount == 2) && (currSpeaker == 1) )
+        handles.SoundCal.currSpeakerName = 'left';
+    elseif ( (speakerCount == 2) && (currSpeaker == 2) )
+        handles.SoundCal.currSpeakerName = 'right';
+    end
+    
+    switch handles.SoundCal.currSpeakerName
+        case 'left'
             speakerSymbol = 'o';
-        case 2
+            channelName = 'channel 1 (left)';
+            speakerMatrixIdx = 1;
+            plotIdx = speakerMatrixIdx;
+        case 'right'
             speakerSymbol = 'x';
+            channelName = 'channel 2 (right)';
+            speakerMatrixIdx = 2;
+            plotIdx = speakerMatrixIdx;
+        case 'both'
+            speakerSymbol = 's';
+            channelName = 'both channels (left & right) combined';
+            plotIdx = 1;
     end
     
     % Let user know to place the microphone
-    uiwait(msgbox({['Calibrating speaker ' num2str(currSpeaker) '.'], 'Position microphone and press OK to continue...'}, 'Sound Calibration', 'modal'));
-    
-    
-    handles.SoundCal.currSpeaker = currSpeaker;
+    uiwait(msgbox({['Calibrating ' channelName '.'], 'Position microphone and press OK to continue...'}, 'Sound Calibration', 'modal'));
     
     for currRep=1:handles.SoundCal.numRepeats
         
@@ -880,7 +957,12 @@ for currSpeaker=1:handles.SoundCal.numSpeakers
                 bandPower_dBSPL = ResponsePureTone(handles);
                 
                 if (currIteration == 1)
-                    InitialPowerVector(freqCntr, currSpeaker, currRep) = bandPower_dBSPL;
+                    if strcmpi(handles.SoundCal.currSpeakerName, 'both')
+                        InitialPowerVector(freqCntr, 1, currRep) = bandPower_dBSPL;
+                        InitialPowerVector(freqCntr, 2, currRep) = bandPower_dBSPL;
+                    else
+                        InitialPowerVector(freqCntr, speakerMatrixIdx, currRep) = bandPower_dBSPL;
+                    end
                 end
                 
                 % Update text fields
@@ -906,9 +988,17 @@ for currSpeaker=1:handles.SoundCal.numSpeakers
             end
             
             % Store values in results vector
-            AttenuationVector(freqCntr, currSpeaker, currRep) = handles.SoundCal.currAmplitude;
-            PowerVector(freqCntr, currSpeaker, currRep) = bandPower_dBSPL;
+            if strcmpi(handles.SoundCal.currSpeakerName, 'both')
+                AttenuationVector(freqCntr, 1, currRep) = handles.SoundCal.currAmplitude;
+                AttenuationVector(freqCntr, 2, currRep) = handles.SoundCal.currAmplitude;
+                PowerVector(freqCntr, 1, currRep) = bandPower_dBSPL;
+                PowerVector(freqCntr, 2, currRep) = bandPower_dBSPL;
+            else
+                AttenuationVector(freqCntr, speakerMatrixIdx, currRep) = handles.SoundCal.currAmplitude;
+                PowerVector(freqCntr, speakerMatrixIdx, currRep) = bandPower_dBSPL;
+            end
             
+            % Check if amplitude was not too high
             if (handles.SoundCal.currAmplitude == 1)
                 msgbox('The sound recorded was not loud enough to calibrate. Please manually increase the speaker volume and restart.', ...
                        'Sound pressure too low', 'error');
@@ -925,9 +1015,9 @@ for currSpeaker=1:handles.SoundCal.numSpeakers
             % Plot attenuation value
             semilogx(handles.ax_Attenuation, ...
                      frequencies(1:freqCntr)/1000, ...
-                     AttenuationVector(1:freqCntr, currSpeaker, currRep), ...
+                     AttenuationVector(1:freqCntr, plotIdx, currRep), ...
                      [speakerSymbol '-'], ...
-                     'Color', colors(floor(64/handles.SoundCal.numSpeakers/handles.SoundCal.numRepeats)*(currRep-1)+floor(64/handles.SoundCal.numSpeakers)*(currSpeaker-1)+1,:));
+                     'Color', colors(floor(64/handles.SoundCal.numSpeakers/handles.SoundCal.numRepeats)*(currRep-1)+floor(64/handles.SoundCal.numSpeakers)*(plotIdx-1)+1,:));
             New_XTickLabel = get(handles.ax_Attenuation, 'xtick');
             set(handles.ax_Attenuation, 'XTickLabel', New_XTickLabel);
         end
@@ -936,33 +1026,45 @@ for currSpeaker=1:handles.SoundCal.numSpeakers
     % Plot the values for the attenuations...
     semilogx(handles.ax_Attenuation, ...
              frequencies/1000, ...
-             mean(AttenuationVector(:,currSpeaker,:),3), ...
+             mean(AttenuationVector(:,plotIdx,:),3), ...
              '-', 'Color', ...
-             colors(floor(64/handles.SoundCal.numSpeakers)*(currSpeaker-1)+1,:), ...
+             colors(floor(64/handles.SoundCal.numSpeakers)*(plotIdx-1)+1,:), ...
              'linewidth',1.5);
     drawnow;
     
     % Set the color values for the dB values
-    if (currSpeaker == 1)
+    if strcmpi(handles.SoundCal.currSpeakerName, 'left')
         dB_color = 'k';
         legendString_dB{1,1} = 'Speaker 1 initial SPL';
         legendString_dB{1,2} = 'Speaker 1 calibrated SPL';
         speakerSymbol = 'o';
-    elseif (currSpeaker == 2)
+        
+    elseif strcmpi(handles.SoundCal.currSpeakerName, 'right')
         dB_color = 'r';
-        legendString_dB{1,3} = 'Speaker 2 initial SPL';
-        legendString_dB{1,4} = 'Speaker 2 calibrated SPL';
+        if (speakerCount == 1)
+            legendString_dB{1,1} = 'Speaker 2 initial SPL';
+            legendString_dB{1,2} = 'Speaker 2 calibrated SPL';
+        elseif (speakerCount == 2)
+            legendString_dB{1,3} = 'Speaker 2 initial SPL';
+            legendString_dB{1,4} = 'Speaker 2 calibrated SPL';
+        end
         speakerSymbol = 'x';
+        
+    elseif strcmpi(handles.SoundCal.currSpeakerName, 'both')
+        dB_color = 'g';
+        legendString_dB{1,1} = 'Combined speakers initial SPL';
+        legendString_dB{1,2} = 'Combined speakers calibrated SPL';
+        speakerSymbol = 's';
     end
     
     semilogx(handles.ax_Attenuation_dB, ...
              frequencies/1000, ...
-             mean(InitialPowerVector(:, currSpeaker, :),3), ...
+             mean(InitialPowerVector(:, plotIdx, :),3), ...
              '-', 'Color', dB_color, 'linewidth',1);
     
     semilogx(handles.ax_Attenuation_dB, ...
              frequencies/1000, ...
-             mean(PowerVector(:, currSpeaker, :),3), ...
+             mean(PowerVector(:, plotIdx, :),3), ...
              speakerSymbol, 'Color', dB_color, 'linewidth',1);
     drawnow;
     
@@ -973,16 +1075,46 @@ for currSpeaker=1:handles.SoundCal.numSpeakers
     legend(handles.ax_Attenuation_dB, 'Location', 'southeast')
     
     % Store calibration data in struct
-    SoundCal(1,currSpeaker).Table                  = [frequencies' mean(AttenuationVector(:,currSpeaker,:),3)];
-    SoundCal(1,currSpeaker).CalibrationTargetRange = [handles.SoundCal.startFreq handles.SoundCal.stopFreq];
-    SoundCal(1,currSpeaker).TargetSPL              = handles.SoundCal.targetSPL;
-    SoundCal(1,currSpeaker).LastDateModified       = date;
-    %SoundCal(1,currSpeaker).Coefficient            = polyfit(frequencies',mean(AttenuationVector(:,currSpeaker,:),3),1);
-    SoundCal(1,currSpeaker).Coefficient            = pchip(frequencies',mean(AttenuationVector(:,currSpeaker,:),3));
-    SoundCal(1,currSpeaker).InitialRespose         = [frequencies' mean(InitialPowerVector(:, currSpeaker, :),3)];
-    SoundCal(1,currSpeaker).CalibratedRespose      = [frequencies' mean(PowerVector(:, currSpeaker, :),3)];
-    SoundCal(1,currSpeaker).FitMethod              = 'pchip';
-    SoundCal(1,currSpeaker).EvaluationMethod       = 'ppval';
+    tempDateString = datestr(now);
+    
+    if ~strcmpi(handles.SoundCal.currSpeakerName, 'both')
+        SoundCal(1,speakerMatrixIdx).Table                  = [frequencies' mean(AttenuationVector(:,speakerMatrixIdx,:),3)];
+        SoundCal(1,speakerMatrixIdx).CalibrationTargetRange = [handles.SoundCal.startFreq handles.SoundCal.stopFreq];
+        SoundCal(1,speakerMatrixIdx).TargetSPL              = handles.SoundCal.targetSPL;
+        SoundCal(1,speakerMatrixIdx).LastDateModified       = tempDateString;
+        %SoundCal(1,speakerMatrixIdx).Coefficient            = polyfit(frequencies',mean(AttenuationVector(:,speakerMatrixIdx,:),3),1);
+        SoundCal(1,speakerMatrixIdx).Coefficient            = pchip(frequencies',mean(AttenuationVector(:,speakerMatrixIdx,:),3));
+        SoundCal(1,speakerMatrixIdx).InitialRespose         = [frequencies' mean(InitialPowerVector(:, speakerMatrixIdx, :),3)];
+        SoundCal(1,speakerMatrixIdx).CalibratedRespose      = [frequencies' mean(PowerVector(:, speakerMatrixIdx, :),3)];
+        SoundCal(1,speakerMatrixIdx).FitMethod              = 'pchip';
+        SoundCal(1,speakerMatrixIdx).SpeakerCalSettings     = handles.SoundCal.speakerSelection;
+    else
+        % Values for left speaker in case of joined calibration
+        SoundCal(1,1).Table                  = [frequencies' mean(AttenuationVector(:,1,:),3)];
+        SoundCal(1,1).CalibrationTargetRange = [handles.SoundCal.startFreq handles.SoundCal.stopFreq];
+        SoundCal(1,1).TargetSPL              = handles.SoundCal.targetSPL;
+        SoundCal(1,1).LastDateModified       = tempDateString;
+        %SoundCal(1,1).Coefficient            = polyfit(frequencies',mean(AttenuationVector(:,1,:),3),1);
+        SoundCal(1,1).Coefficient            = pchip(frequencies',mean(AttenuationVector(:,1,:),3));
+        SoundCal(1,1).InitialRespose         = [frequencies' mean(InitialPowerVector(:, 1, :),3)];
+        SoundCal(1,1).CalibratedRespose      = [frequencies' mean(PowerVector(:, 1, :),3)];
+        SoundCal(1,1).FitMethod              = 'pchip';
+        SoundCal(1,1).SpeakerCalSettings     = handles.SoundCal.speakerSelection;
+        
+        % Values for right speaker in case of joined calibration
+        SoundCal(1,2).Table                  = [frequencies' mean(AttenuationVector(:,2,:),3)];
+        SoundCal(1,2).CalibrationTargetRange = [handles.SoundCal.startFreq handles.SoundCal.stopFreq];
+        SoundCal(1,2).TargetSPL              = handles.SoundCal.targetSPL;
+        SoundCal(1,2).LastDateModified       = tempDateString;
+        %SoundCal(1,2).Coefficient            = polyfit(frequencies',mean(AttenuationVector(:,2,:),3),1);
+        SoundCal(1,2).Coefficient            = pchip(frequencies',mean(AttenuationVector(:,2,:),3));
+        SoundCal(1,2).InitialRespose         = [frequencies' mean(InitialPowerVector(:, 2, :),3)];
+        SoundCal(1,2).CalibratedRespose      = [frequencies' mean(PowerVector(:, 2, :),3)];
+        SoundCal(1,2).FitMethod              = 'pchip';
+        SoundCal(1,2).SpeakerCalSettings     = handles.SoundCal.speakerSelection;
+    end
+        
+    
 end
 
 % Save sound calibration file
@@ -996,6 +1128,9 @@ uiwait(msgbox({'The Sound Calibration file has been saved in: ', fullfile(PathNa
 if ispc
     delete(handles.DAQ.Session);
 end
+
+% Update handles structure
+guidata(hObject, handles);
 
 
 % --- Executes on button press in pushbutton_Abort.

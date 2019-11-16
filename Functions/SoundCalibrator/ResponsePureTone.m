@@ -10,14 +10,17 @@ function [bandPower_dBSPL] = ResponsePureTone(handles)
 % sound pressure level in dezi-Bell (dB_SPL) in relation to the reference of the
 % human auditory threshold (p0 = 20 uPa @ 1 kHz)
 %
+% Based on the implementation by Santiago Jaramillo, Uri, and Fede
+%
 % Author: Michael Wulf
 %         Cold Spring Harbor Laborator
 %         Kepecs Lab
 %         wulf@cshl.edu / michael.wulf@gmail.com
 %
-% Date:    2019-11-06
-% Version: 1.00.00
+% Date:    2019-11-14
+% Version: 1.00.01
 % History:
+%  - 1.00.01: Changed audio playback for combined calibration of two speakers
 %  - 1.00.00: Initial version combining previously separated functions together
 %             and making the code more robust and understandable
 
@@ -31,23 +34,31 @@ t  = 0:Ts:T;
 
 % Get parameters for spectral analysis
 NWindow   = handles.SoundCal.PSDWindowLength;
-FsInput   = handles.DAQ.SamplingRate;
-p0        = handles.SoundCal.pressureReference;
+FsInput   = handles.DAQ.SamplingRate;           % Should be 200 kHz
+p0        = handles.SoundCal.pressureReference; % Should be 20 uPa
 bandwidth = handles.SoundCal.bandwidth;
 
 % Generate mono-frequent signal
 outputSound = a0 * sin(2 * pi * f0 * t);
 
-% Depending on which speaker to be used, create a stereo signal where one
-% channel is "silent"
-switch(handles.SoundCal.currSpeaker)
-    case 1
-        outputSound = [outputSound; zeros(1, length(outputSound))];
-    case 2
-        outputSound = [zeros(1, length(outputSound)); outputSound];
-    otherwise
-        error(['Unkown speaker channel! Speaker: ', ...
-              num2str(handles.SoundCal.currSpeaker)]);
+% Check speaker channel selection for setting values to be played via PsychToolbox
+if strcmpi(handles.SoundCal.currSpeakerName, 'left')
+    % Only left speaker should be calibrated:
+    % Create a stereo signal where right channel is "silent"
+    outputSound = [outputSound; zeros(1, length(outputSound))];
+    
+elseif strcmpi(handles.SoundCal.currSpeakerName, 'right')
+    % Only right speaker should be calibrated:
+    % Create a stereo signal where left channel is "silent"
+    outputSound = [zeros(1, length(outputSound)); outputSound];
+    
+elseif strcmpi(handles.SoundCal.currSpeakerName, 'both')
+    % Both speakers should be calibrated:
+    % Create a stereo signal where left and right channel are identical
+    outputSound = [outputSound; outputSound];
+    
+else
+    error('Unkown speaker channel selection %s', handles.SoundCal.currSpeakerName);
 end
         
 % Load the sound vector into sound server's channel 1

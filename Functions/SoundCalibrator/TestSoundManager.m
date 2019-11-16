@@ -22,7 +22,7 @@ function varargout = TestSoundManager(varargin)
 
 % Edit the above text to modify the response to help TestSoundManager
 
-% Last Modified by GUIDE v2.5 06-Nov-2019 16:04:49
+% Last Modified by GUIDE v2.5 15-Nov-2019 10:37:55
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -63,6 +63,9 @@ handles.SoundCal        = [];
 % Disable play button
 set(handles.pushbutton_Play, 'Enable', 'off');
 
+% (Re-)Initialize PsychToolbox PortAudio
+PsychToolboxSoundServer('init');
+
 % Update handles structure
 guidata(hObject, handles);
 
@@ -76,18 +79,38 @@ function varargout = TestSoundManager_OutputFcn(hObject, eventdata, handles) %#o
 nan;
 
 
-% --- Executes when selected object changed in unitgroup.
-function unitgroup_SelectionChangedFcn(hObject, eventdata, handles)
-% hObject    handle to the selected object in unitgroup 
+% % --- Executes when selected object changed in unitgroup.
+% function unitgroup_SelectionChangedFcn(hObject, eventdata, handles)
+% % hObject    handle to the selected object in unitgroup 
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    structure with handles and user data (see GUIDATA)
+% 
+% if (hObject == handles.radiobutton_speaker1)
+%     handles.speaker=1;
+% else
+%     handles.speaker=2;
+% end
+% guidata(hObject,handles)
+
+% --- Executes on selection change in popupmenu_Speaker_Selection.
+function popupmenu_Speaker_Selection_Callback(hObject, eventdata, handles)
+% hObject    handle to popupmenu_Speaker_Selection (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu_Speaker_Selection contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from popupmenu_Speaker_Selection
 
-if (hObject == handles.radiobutton_speaker1)
-    handles.speaker=1;
-else
-    handles.speaker=2;
+% --- Executes during object creation, after setting all properties.
+function popupmenu_Speaker_Selection_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to popupmenu_Speaker_Selection (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
 end
-guidata(hObject,handles)
 
 
 function edit_Sample_Rate_Callback(hObject, eventdata, handles)
@@ -290,12 +313,6 @@ else
                 return;
             end
             
-            % Store calibration data in handles structure
-            handles.SoundCal = SoundCal;
-            
-            % Delete SoundCal struct from workspace
-            clear SoundCal;
-            
         else
             % Output error message
             tempMsg = sprintf('Calibration file ''%s%s'' contains an incompatible format!', tempFileName, tempExtension);
@@ -316,9 +333,26 @@ else
 end
 
 % Update text fields
+for speakerNum = 1:1:length(SoundCal)
+    if ( (~isempty(SoundCal(1, speakerNum).LastDateModified)) && ...
+            (~isempty(SoundCal(1, speakerNum).LastDateModified)) )
+        set(handles.text_Target_Value,   'String', [num2str(SoundCal(1, speakerNum).TargetSPL) ' dB_SPL']);
+        set(handles.textCal_Date_Value,  'String', SoundCal(1, speakerNum).LastDateModified);
+        break;
+    end
+    
+    if (speakerNum == length(SoundCal))
+        tempMsg = sprintf('Unable to open Calibration file ''%s.%s''!', tempFileName, tempExtension);
+        msgbox(tempMsg, 'Error loading file', 'error');
+    end
+end
 set(handles.text_Cal_File_Value, 'String', [tempFileName tempExtension]);
-set(handles.textCal_Date_Value,  'String', handles.SoundCal.LastDateModified);
-set(handles.text_Target_Value,   'String', [num2str(handles.SoundCal.TargetSPL) ' dB_SPL']);
+
+% Store calibration data in handles structure
+handles.SoundCal = SoundCal;
+
+% Delete SoundCal struct from workspace
+clear SoundCal;
 
 % Enable play button
 set(handles.pushbutton_Play, 'Enable', 'on');
@@ -401,64 +435,39 @@ elseif (T0 <= 0)
     return;
 end
 
+speakerContents = cellstr(get(handles.popupmenu_Speaker_Selection, 'String'));
+selectedSpeakerSetting = speakerContents{get(handles.popupmenu_Speaker_Selection, 'Value')};
+
+sideNumber = []; %#ok<NASGU>
+
 % Check selected speaker
-if get(handles.radiobutton_speaker1, 'Value')
-    handles.speaker = 1;
-elseif get(handles.radiobutton_speaker2, 'Value')
-    handles.speaker = 2;
+if strcmpi(selectedSpeakerSetting, 'Speaker 1 (left)')
+    handles.speaker = 'left';
+    sideNumber = 0;
+    
+elseif strcmpi(selectedSpeakerSetting, 'Speaker 2 (right)')
+    handles.speaker = 'right';
+    sideNumber = 1;
+    
+elseif strcmpi(selectedSpeakerSetting, 'Both')
+    handles.speaker = 'both';
+    sideNumber = 2;
+    
 else
-    msgBox('Invalid speaker selection!', 'Error', 'error');
+    msgBox(sprintf('Invalid speaker selection %!', selectedSpeakerSetting), 'Error', 'error');
     return;
 end
 % --------------------------------------------------------------------------
 % Check input values - End
 % --------------------------------------------------------------------------
 
-if (size(handles.SoundCal, 2) < handles.speaker)
-    msgbox('Selected sound calibration file has only calibration values for speaker 1 (left)', ...
-           'No calibration for speaker', 'error');
-    return;
-end
-
-
-if isfield(handles.SoundCal(1, handles.speaker), 'FitMethod')
-    fitMethod = handles.SoundCal(1, handles.speaker).FitMethod;
-    switch(lower(fitMethod))
-        case 'pchip'
-            att = ppval(handles.SoundCal(1, handles.speaker).Coefficient, f0);
-            
-        otherwise
-            tempMsg = sprintf('Unsupported interpolation method ''%s'' being used during calibration', fitMethod);
-            msgBox(tempMsg, 'Unknown interpolation', 'error');
-            return;
-    end
-else
-    att = polyval(handles.SoundCal(1, handles.speaker).Coefficient, f0);
-end
-
-% Get the difference between the calibrated sound pressure level and the
-% currently desired sound pressure level
-diff_dB_SPL = a_dB - handles.SoundCal(1, handles.speaker).TargetSPL;
-
-% Convert this difference into an amplidute correction factor (that's why
-% deviding by 20 - or taking sqrt of the result if deviding by 10)
-% If difference is positive, the correction factor will be > 1 otherwise < 1
-corrFactor = 10^(diff_dB_SPL/20);
-
-% correct the amplitude
-a = att * corrFactor;
-
-% Generate time vecotr for creating sound
-t = 0:1/Fs:T0;
-
-% Generate sound - pure tone
-soundOutput = a * sin(2 * pi * f0 * t);
-
-if handles.speaker==1
-    soundOutput = [soundOutput; zeros(1,length(soundOutput))];
-end
-if handles.speaker==2
-    soundOutput = [zeros(1,length(soundOutput)); soundOutput];
+% Generate sound data
+try
+    soundOutput = CalibratedPureTone(f0, T0, a_dB, sideNumber, 0, Fs*1000, handles.SoundCal);
+catch ME
+    msg = sprintf('Could not generate test sound! Error: %s', ME.message);
+    msgbox(msg, 'Error', 'error');
+    return
 end
 
 % Load the sound vector into sound server's channel 1
@@ -474,3 +483,4 @@ function pushbutton_Close_Callback(hObject, eventdata, handles) %#ok<*INUSL,*DEF
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 delete(handles.TestSoundGUI)
+
