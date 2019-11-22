@@ -23,7 +23,7 @@ function varargout = SoundCalibrationManager(varargin)
 
 % Edit the above text_Amp_Condition to modify the response to help SoundCalibrationManager
 
-% Last Modified by GUIDE v2.5 14-Nov-2019 12:16:25
+% Last Modified by GUIDE v2.5 18-Nov-2019 15:58:18
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -166,6 +166,16 @@ function varargout = SoundCalibrationManager_OutputFcn(hObject, eventdata, handl
 
 % Get default command line output from handles structure
 varargout{1} = handles.output;
+
+
+% --- Executes when user attempts to close figure1.
+function figure1_CloseRequestFcn(hObject, eventdata, handles)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: delete(hObject) closes the figure
+delete(hObject);
 
 
 % --- Executes on selection change in popupmenu_DAQ_Device.
@@ -600,6 +610,16 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
+% --- Executes on button press in pushbutton_Calibrate_Audio_File.
+function pushbutton_Calibrate_Audio_File_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton_Calibrate_Audio_File (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+CalibrateSoundFilesManager();
+
+figure1_CloseRequestFcn(handles.figure1, [], handles);
+
+
 % --- Executes on button press in pushbutton_Calibrate.
 function pushbutton_Calibrate_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbutton_Calibrate (see GCBO)
@@ -794,7 +814,7 @@ end
 SoundCal = struct;
 
 % (Re-)Initialize PsychToolbox PortAudio
-PsychToolboxSoundServer('init')
+PsychToolboxSoundServer('init');
 
 % Setup daq device in case this code is being executed on a Windows system
 if ispc
@@ -1149,3 +1169,6 @@ function pushbutton_Test_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 TestSoundManager(handles.filename)
+
+
+
